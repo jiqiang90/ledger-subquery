@@ -1,0 +1,159 @@
+name: Staging Backend Deployment
+
+on:
+  push:
+    branches:
+      - chore/automatic-deployment
+
+jobs:
+  staging-build:
+    name: Staging Backend Build
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: ${{ secrets.GKE_STAGING_PROJECT_ID }}
+      GKE_CLUSTER: ${{ secrets.GKE_STAGING_CLUSTER }}
+      GKE_ZONE: ${{ secrets.GKE_STAGING_ZONE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      #  Setup gcloud CLI
+      - uses: google-github-actions/setup-gcloud@v0
+        with:
+          service_account_key: ${{ secrets.GKE_STAGING_SERVICE_ACCOUNT }}
+          project_id: ${{ secrets.GKE_STAGING_PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Set Image Tag
+        id: vars
+        run: echo "::set-output name=sha_short::$(git describe --always --tags --dirty=-wip)"
+
+      # Configure docker to use the gcloud command-line tool as a credential helper
+      - run: |
+          gcloud auth configure-docker -q
+
+      # setup buildx runner
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@master
+        with:
+          install: true
+
+      # Git hub Actions - Caching
+      - name: Cache Docker Layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-image-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-image
+
+      - name: Build and Push Images
+        uses: docker/build-push-action@v3
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          tags: |
+            gcr.io/fetch-ai-sandbox/subquery-node:${{ steps.vars.outputs.sha_short }}
+            gcr.io/fetch-ai-sandbox/subquery-node:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  # # staging - deployment
+  # staging-deploy:
+
+  #   name: Staging Backend Deployment
+  #   runs-on: ubuntu-latest
+  #   needs: staging-build
+
+  #   env:
+  #     PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  #     GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+  #     GKE_ZONE: ${{ secrets.GKE_ZONE }}
+
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+
+  #     - name: Install git-secret
+  #       run: |
+  #         sudo apt-get install apt-transport-https ca-certificates
+  #         sudo sh -c "echo 'deb https://gitsecret.jfrog.io/artifactory/git-secret-deb git-secret main' >> /etc/apt/sources.list"
+  #         wget -qO - 'https://gitsecret.jfrog.io/artifactory/api/gpg/key/public' | sudo apt-key add -
+  #         sudo apt-get update && sudo apt-get install git-secret
+  #     - name: Import Fetchbot GPG Key
+  #       run: echo "${GPG_KEY}" | gpg --import --no-tty --batch --yes -
+  #       env:
+  #         GPG_KEY: ${{ secrets.FETCHBOT_GPG_KEY }}
+
+  #     - name: Reveal Deployment Secrets
+  #       run: git-secret reveal -p ${{ secrets.FETCHBOT_GPG_KEY_PASSPHRASE }} -f -v
+
+  #   # Setup gcloud CLI
+  #     - uses: google-github-actions/setup-gcloud@v0
+  #       with:
+  #         service_account_key: ${{ secrets.DEVOPS_SA_KEY }}
+  #         project_id: ${{ secrets.PROJECT_ID }}
+  #         export_default_credentials: true
+
+  #     - name: Set Image Tag
+  #       id: vars
+  #       run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+  #     # Configure docker to use the gcloud command-line tool as a credential helper
+  #     - run: |
+  #         gcloud auth configure-docker -q
+  #     #Install helm
+  #     - name: Install Helm
+  #       run: |
+  #         curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+  #     - name: Turnstyle
+  #       uses: softprops/turnstyle@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: Start Deployment
+  #       uses: bobheadxi/deployments@v1.3.0
+  #       id: deployment_staging
+  #       with:
+  #         step: start
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         env: staging
+
+  #     # Deploy the Docker image to the GKE cluster
+  #     - name: Deploy to Staging
+  #       env:
+  #         IMAGE_TAG: ${{ steps.vars.outputs.sha_short }}
+  #         HELM_NAME: staging
+  #         NAMESPACE: agentsplatform
+
+  #       run: |
+  #         gcloud container clusters get-credentials $GKE_CLUSTER \
+  #           --zone $GKE_ZONE \
+  #           --project $PROJECT_ID
+  #         helm upgrade --install --wait --timeout 360s $HELM_NAME ./deployment/agents-platform/ \
+  #           -f ./deployment/staging-values.yml \
+  #           --set-string global.image.tag=$IMAGE_TAG \
+  #           --set-string global.external_secrets.external_secret_enabled=true \
+  #           --set-string global.external_secrets.projectId=$PROJECT_ID \
+  #           --set-string global.external_secrets.secret_key=ap_staging_secrets_es \
+  #           -n $NAMESPACE
+  #     # Publish Helm output to the PR
+  #     - name: Update Deployment Status
+  #       uses: bobheadxi/deployments@v1.3.0
+  #       if: always()
+  #       with:
+  #         step: finish
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         status: ${{ job.status }}
+  #         env: ${{ steps.deployment_staging.outputs.env }}
+  #         deployment_id: ${{ steps.deployment_staging.outputs.deployment_id }}
+  #         override: false # this results in multiple active deployments being displayed in https://github.com/fetchai/agents-platform
+  #         auto_inactive: true
