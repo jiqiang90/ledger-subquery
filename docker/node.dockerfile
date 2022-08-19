@@ -29,4 +29,6 @@ ADD ./proto /app/proto
 ADD ./project.yaml schema.graphql /app/
 ADD ./scripts/node-entrypoint.sh /entrypoint.sh
 
+RUN chmod +x /error-check.js
+
 ENTRYPOINT ["/entrypoint.sh"]
