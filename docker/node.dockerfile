@@ -28,6 +28,7 @@ COPY --from=builder /app/dist /app/dist
 ADD ./proto /app/proto
 ADD ./project.yaml schema.graphql /app/
 ADD ./scripts/node-entrypoint.sh /entrypoint.sh
+ADD ./scripts/error-check.js /error-check.js
 
 RUN chmod +x /error-check.js
 
