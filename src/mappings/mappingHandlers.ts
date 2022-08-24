@@ -1,12 +1,15 @@
 import {
+  Account,
   Block,
   DistDelegatorClaim,
   Event,
+  EventAttribute,
   ExecuteContractMessage,
   GovProposalVote,
   GovProposalVoteOption,
   LegacyBridgeSwap,
   Message,
+  NativeBalance,
   NativeTransfer,
   Transaction,
   TxStatus
@@ -224,14 +227,14 @@ export async function handleLegacyBridgeSwap(msg: CosmosMessage<LegacyBridgeSwap
     funds: [{amount, denom}],
     contract,
   } = msg.msg.decodedMsg;
-  
+
   // gracefully skip indexing "swap" messages that doesn't fullfill the bridge contract
   // otherwise, the node will just crashloop trying to save the message to the db with required null fields.
   if (!destination || !amount || !denom || !contract) {
     logger.warn(`[handleLegacyBridgeSwap] (tx ${msg.tx.hash}): cannot index message (msg.msg): ${JSON.stringify(msg.msg, null, 2)}`)
-    return 
+    return
   }
-  
+
   const legacySwap = LegacyBridgeSwap.create({
     id,
     destination,
@@ -283,4 +286,102 @@ export async function handleDelegatorWithdrawRewardEvent(event: CosmosEvent): Pr
   claim.amount = BigInt(amount);
   claim.denom = denom;
   await claim.save();
+}
+
+export async function handleNativeBalanceDecrement(event: CosmosEvent): Promise<void> {
+  logger.info(`[handleNativeBalanceDecrement] (tx ${event.tx.hash}): indexing event ${event.idx + 1} / ${event.tx.tx.events.length}`)
+  logger.debug(`[handleNativeBalanceDecrement] (event.event): ${JSON.stringify(event.event, null, 2)}`)
+  logger.debug(`[handleNativeBalanceDecrement] (event.log): ${JSON.stringify(event.log, null, 2)}`)
+
+  // NB: convert [{key: "value"}, {key2: "value2"} ...]
+  //           to {key: "value", key2: "value2" ...}
+  const attrs: {
+    spender: string
+    amount: string
+  } = event.event.attributes.reduce(
+    (acc, next) => Object.assign(acc, next),
+    {spender: "", amount: ""}
+  )
+
+  // NB: amountString: "5000000atestfet"
+  const {spender, amount: amountString} = attrs;
+  const [_, amount, denom] = amountString.match(/(\d+)(\w+)/);
+
+  if (typeof(spender) === "undefined" || typeof(amount) === "undefined") {
+    const gotKeys = Object.keys(attrs).join(", ")
+    logger.warn(`[handleNativeBalanceDecrement]: expected ["spender", "amount"] key, got "${gotKeys}" - SKIPPING!`);
+    return
+  }
+
+  let accountEntity = await Account.get(spender)
+  if (typeof(accountEntity) === "undefined") {
+    accountEntity = Account.create({id: spender})
+  }
+
+  const id = `${spender}-${denom}`
+  let nativeBalanceEntity = await NativeBalance.get(id);
+  if (typeof(nativeBalanceEntity) === "undefined") {
+    nativeBalanceEntity = NativeBalance.create({
+      id,
+      accountId: spender,
+      balanceOffset: BigInt(0) - BigInt(amount),
+      genesisBalance: BigInt(-1),
+      denom,
+    });
+
+    await nativeBalanceEntity.save();
+  } else {
+    nativeBalanceEntity.balanceOffset -= BigInt(amount);
+  }
+  await accountEntity.save();
+  await nativeBalanceEntity.save()
+}
+
+export async function handleNativeBalanceIncrement(event: CosmosEvent): Promise<void> {
+  logger.info(`[handleNativeBalanceIncrement] (tx ${event.tx.hash}): indexing event ${event.idx + 1} / ${event.tx.tx.events.length}`)
+  logger.debug(`[handleNativeBalanceIncrement] (event.event): ${JSON.stringify(event.event, null, 2)}`)
+  logger.debug(`[handleNativeBalanceIncrement] (event.log): ${JSON.stringify(event.log, null, 2)}`)
+
+  // NB: convert [{key: "value"}, {key2: "value2"} ...]
+  //           to {key: "value", key2: "value2" ...}
+  const attrs: {
+    receiver: string
+    amount: string
+  } = event.event.attributes.reduce(
+    (acc, next) => Object.assign(acc, next),
+    {receiver: "", amount: ""}
+  )
+
+  // NB: amountString: "5000000atestfet"
+  const {receiver, amount: amountString} = attrs;
+  const [_, amount, denom] = amountString.match(/(\d+)(\w+)/);
+
+  if (typeof(receiver) === "undefined" || typeof(amount) === "undefined") {
+    const gotKeys = Object.keys(attrs).join(", ")
+    logger.warn(`[handleNativeBalanceIncrement]: expected ["receiver", "amount"] key, got "${gotKeys}" - SKIPPING!`);
+    return
+  }
+
+  let accountEntity = await Account.get(receiver)
+  if (typeof(accountEntity) === "undefined") {
+    accountEntity = Account.create({id: receiver})
+  }
+
+  const id = `${receiver}-${denom}`
+  let nativeBalanceEntity = await NativeBalance.get(id);
+  if (typeof(nativeBalanceEntity) === "undefined") {
+    nativeBalanceEntity = NativeBalance.create({
+      id,
+      accountId: receiver,
+      balanceOffset: BigInt(amount),
+      genesisBalance: BigInt(-1),
+      denom,
+    });
+
+    await nativeBalanceEntity.save();
+  } else {
+    nativeBalanceEntity.balanceOffset += BigInt(amount);
+  }
+  await accountEntity.save();
+  await nativeBalanceEntity.save()
 }
