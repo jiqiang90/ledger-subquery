@@ -1,3 +1,6 @@
+version: 2
+mode: preview
+
 subquery:
   node:
     image: gcr.io/fetch-ai-images/subquery-node
@@ -17,7 +20,7 @@ subquery:
       ingressGateway: "istio-fetchpubig"
 
       # DNS Settings
-      name: subquery-dorado.t-v3-london.fetch-ai.com
+      name: subquery-dorado-preview.t-v3-london.fetch-ai.com
       target: "fetchpub.t-v3-london.fetch-ai.com"
       additionalDnsNames: []
 

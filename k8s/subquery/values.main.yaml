@@ -1,0 +1,36 @@
+version: 1
+mode: main
+
+subquery:
+  node:
+    image: gcr.io/fetch-ai-images/subquery-node
+    tag: b617ee2
+    startBlock: "827201"
+    networkEndpoint: http://rpc-rpc-lb.dorado.svc.cluster.local:26657
+    chainId: "dorado-1"
+
+  api:
+    image: gcr.io/fetch-ai-images/subquery-api
+    tag: a6bf18c
+
+    replicas: 1
+
+    dns:
+      # Gateways
+      ingressGateway: "istio-fetchpubig"
+
+      # DNS Settings
+      name: subquery-dorado-main.t-v3-london.fetch-ai.com
+      target: "fetchpub.t-v3-london.fetch-ai.com"
+      additionalDnsNames: []
+
+db:
+  image: postgres
+  tag: 14-alpine
+
+  name: subquery
+  user: subquery
+  gcpProject: fetch-ai-testnet-v3
+  gcpSecret: testnet-subquery_postgres
+
+  storageSize: 7Gi
