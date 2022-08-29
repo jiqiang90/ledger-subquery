@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: subquery-api-gateway
+  name: subquery-api-preview-gateway
   labels:
     {{- include "subquery.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
@@ -13,7 +13,7 @@ spec:
 
   servers:
   - hosts:
-    - {{ .Values.subquery.api.dns.name }}
+    - {{ .Values.subquery.api.dns.preview }}
     {{- range .Values.subquery.api.dns.additionalNames }}
     - {{ . | quote }}
     {{- end }}
@@ -24,7 +24,7 @@ spec:
     tls:
       httpsRedirect: false
   - hosts:
-    - {{ .Values.subquery.api.dns.name }}
+    - {{ .Values.subquery.api.dns.preview }}
     {{- range .Values.subquery.api.dns.additionalNames }}
     - {{ . | quote }}
     {{- end }}
@@ -33,7 +33,7 @@ spec:
       number: 443
       protocol: HTTPS
     tls:
-      credentialName: "subq-{{ .Release.Namespace }}-{{ .Release.Name }}-cert"
+      credentialName: subq-preview-cert
       mode: SIMPLE
       privateKey: sds
       serverCertificate: sds

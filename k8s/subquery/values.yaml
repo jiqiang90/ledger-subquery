@@ -1,5 +1,5 @@
-version: 2
-mode: preview
+version: 1
+mode: main
 
 subquery:
   node:
@@ -14,15 +14,6 @@ subquery:
     tag: a6bf18c
 
     replicas: 1
-
-    dns:
-      # Gateways
-      ingressGateway: "istio-fetchpubig"
-
-      # DNS Settings
-      name: subquery-dorado-preview.t-v3-london.fetch-ai.com
-      target: "fetchpub.t-v3-london.fetch-ai.com"
-      additionalDnsNames: []
 
 db:
   image: postgres

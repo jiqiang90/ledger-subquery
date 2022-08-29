@@ -1,13 +1,13 @@
 apiVersion: externaldns.k8s.io/v1alpha1
 kind: DNSEndpoint
 metadata:
-  name: api-endpoint
+  name: api-preview-endpoint
   labels:
     {{- include "subquery.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
 spec:
   endpoints:
-  - dnsName:  {{ .Values.subquery.api.dns.name }}
+  - dnsName:  {{ .Values.subquery.api.dns.preview }}
     recordTTL: 180
     recordType: CNAME
     targets:

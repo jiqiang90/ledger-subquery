@@ -1,0 +1,16 @@
+subquery:
+  api:
+    dns:
+      # Gateways
+      ingressGateway: "istio-fetchpubig"
+      # DNS Settings
+      # preview endpoint
+      preview: preview-subquery-dorado-main.t-v3-london.fetch-ai.com
+      # main endpoint
+      main: subquery-dorado-main.t-v3-london.fetch-ai.com
+      target: "fetchpub.t-v3-london.fetch-ai.com"
+      additionalDnsNames: []
+
+namespace:
+  preview: v2
+  main: v1

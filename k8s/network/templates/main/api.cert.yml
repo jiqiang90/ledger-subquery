@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: subq-cert
+  namespace: istio-system
+spec:
+  commonName: {{ .Values.subquery.api.dns.main }}
+  dnsNames:
+  - {{ .Values.subquery.api.dns.main }}
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-dns
+  secretName: subq-cert
