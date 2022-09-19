@@ -50,11 +50,12 @@ dataSources:
           filter:
             type: "/cosmwasm.wasm.v1.MsgExecuteContract"
         - handler: handleLegacyBridgeSwap
-          kind: cosmos/MessageHandler
+          kind: cosmos/EventHandler
           filter:
-            type: "/cosmwasm.wasm.v1.MsgExecuteContract"
-            # Filter to only messages with the swap function call
-            contractCall: "swap" # The name of the contract function that was called
+            type: "execute"
+            messageFilter:
+              type: "/cosmwasm.wasm.v1.MsgExecuteContract"
+              contractCall: "swap"
         - handler: handleNativeTransfer
           kind: cosmos/MessageHandler
           filter:

@@ -19,7 +19,6 @@ import {
   ExecuteContractMsg,
   DistDelegatorClaimMsg,
   GovProposalVoteMsg,
-  LegacyBridgeSwapMsg,
   NativeTransferMsg,
 } from "./types";
 import {toBech32} from "@cosmjs/encoding";
@@ -251,16 +250,18 @@ export async function handleDistDelegatorClaim(msg: CosmosMessage<DistDelegatorC
   await claim.save();
 }
 
-export async function handleLegacyBridgeSwap(msg: CosmosMessage<LegacyBridgeSwapMsg>): Promise<void> {
+export async function handleLegacyBridgeSwap(event: CosmosEvent): Promise<void> {
+  const msg = event.msg;
   const id = messageId(msg);
   logger.info(`[handleLegacyBridgeSwap] (tx ${msg.tx.hash}): indexing LegacyBridgeSwap ${id}`)
   logger.debug(`[handleLegacyBridgeSwap] (msg.msg): ${JSON.stringify(msg.msg, null, 2)}`)
 
-  const {
-    msg: {swap: {destination}},
-    funds: [{amount, denom}],
-    contract,
-  } = msg.msg.decodedMsg;
+  const decodedMsg = msg.msg.decodedMsg;
+  
+  const destination = decodedMsg.msg?.swap?.destination;
+  const amount = decodedMsg.funds[0]?.amount;
+  const denom = decodedMsg.funds[0]?.denom;
+  const contract = decodedMsg.contract;
 
   // gracefully skip indexing "swap" messages that doesn't fullfill the bridge contract
   // otherwise, the node will just crashloop trying to save the message to the db with required null fields.
