@@ -38,7 +38,7 @@ services:
       - ./:/app
     command:
       - -f=/app
-      - --db-schema=app
+      - --db-schema=public
       - --batch-size=1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://subquery-node:3000/ready"]
