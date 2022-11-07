@@ -114,3 +114,19 @@ dataSources:
             messageFilter:
               type: "/cosmwasm.wasm.v1.MsgExecuteContract"
               contractCall: "mint"
+        - handler: handleContractStoreEvent
+          kind: cosmos/EventHandler
+          filter:
+            type: "store_code"
+            messageFilter:
+              type: "/cosmwasm.wasm.v1.MsgStoreCode"
+        - handler: handleContractInstantiateEvent
+          kind: cosmos/EventHandler
+          filter:
+            type: "instantiate"
+            messageFilter:
+              type: "/cosmwasm.wasm.v1.MsgInstantiateContract"
+        - handler: handleAuthzExec
+          kind: cosmos/MessageHandler
+          filter:
+            type: "/cosmos.authz.v1beta1.MsgExec"
