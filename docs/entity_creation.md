@@ -11,7 +11,7 @@ Expanding the current selection of indexed entities is a way of increasing the c
 
 in `schema.graphql`:
 
-The GraphQl schema is amended to include the new entity, with any fields that are needed to support new use cases. These attributes are preferably only those required in order to minimise storage.
+The GraphQl schema is amended to include the new entity, with any fields that are needed to support new use cases. These attributes are preferably **only those required, in order to minimise storage requirements**.
 ```
 0  type TestEntity @entity {
 1  		id: ID!
@@ -24,13 +24,13 @@ The GraphQl schema is amended to include the new entity, with any fields that ar
 8  }
 ```
 
-- L0 - Entity is defined with the `@entity` annotation
+- L0 - Entity is defined as a GraphQL type with the addition of the `@entity` annotation.
 
-- L1 - Entity is afforded a unique identifier, ID - this is ultimately a string in practise.
+- L1 - Entity requires a unique identifier, GraphQL type: ID - in SQL, this column will have the `text` type.
 
-- L2-4 - Needed entity attributes and their types are added, some with the `@index` tag to allow more complex querying
+- L2-4 - Needed entity attributes and their types are added, some with the `@index` tag to allow faster querying for anticipated use cases.
 
-- L5-8 - Entities: message, transaction and block are related
+- L5-8 - Entities: message, transaction and block are related.
 
 Updating the generated code to include these changes can be done by running the following: 
 ```
@@ -78,13 +78,13 @@ This handler function will be [configured](#creating-the-handler-trigger) to tri
 
 - L0 - Create an asynchronous handler function accepting a `CosmosEvent` as a parameter. The convention for event-based handlers is in place to ensure we only handle successful transactions - as opposed to message-based handling where an expensive internal success check must be made.
   - Using the safe navigation operator `?` allows us to reference message values regardless of whether they exist, such as `event.msg?.msg?.decodedMsg?.entity_field_a`, where one or more of the parent structures could be corrupted and halt  the indexer without the operator.
-- L3-9 - Create a reference to the message related to the event and assign variables from the appropriate message fields
+- L3-9 - Create a reference to the message related to the event and assign variables from the appropriate message fields.
 
 - L11-14 - Check that these fields are valid, abandoning attempt at indexing the event in the case that any fields are malformed. Allowing the indexer to continue.
 
-- L16-24 - Create a `TestEntity` instance and populate the required fields
+- L16-24 - Create a `TestEntity` instance and populate the required fields.
 
-- L26 - Save the entity to the database
+- L26 - Save the entity to the database.
 
 #### Configuring handler filters
 
@@ -101,13 +101,13 @@ This example will run the respective [handler](#implementing-the-entity-handler)
 5        	type: "message_type_url" 
 ```
 
-- L0 - Reference the TypeScript handler function to be called when triggered
+- L0 - Reference the TypeScript handler function to be called when triggered.
 
 - L1 - Define which type of handler this will trigger, in this case an Event handler. This will provide the event to the handler as the function signature.
 
-- L2-3 - Configure the event filtering for type `"event_type"`
+- L2-3 - Configure the event filtering for type `"event_type"`.
 
-- L4-5 - Configure the relevant message filtering as type `"message_type_url"`
+- L4-5 - Configure the relevant message filtering as type `"message_type_url"`.
 
 [Further reading](https://academy.subquery.network/build/manifest/cosmos.html#mapping-handlers-and-filters)
 
@@ -118,13 +118,13 @@ The current program flow for each test can be abstracted to the different major 
 
 Entities are tested within their various states between their creation to querying in order to be considered `end-to-end`, or `e2e`, tested. These full `e2e` tests encompass the following:
 
-- Triggering the interaction of focus
+- Triggering the interaction of focus.
 
-- The handler capturing the interaction and creating the relevant entity
+- The handler capturing the interaction and creating the relevant entity.
 
-- An assertion that the entity has been captured and stored within the database correctly
+- An assertion that the entity has been captured and stored within the database correctly.
 
-- Querying to determine if the entity's properties are as expected and not malformed
+- Querying to determine if the entity's properties are as expected and not malformed.
 
 #### Creating the handler trigger
 in `tests/e2e/entities/TestYourEntity.py`:
@@ -160,13 +160,13 @@ The SetUp method of each Entity test class will look similar to the following:
 4 	self.assertEqual(entity[0], "correct value", "Assertion failure message") 
 ```
 
-- L1 - Set out our SQL query to fetch the columns corresponding to the fields we defined in our schema.graphql
+- L1 - Set out our SQL query to fetch the columns corresponding to the fields we defined in our schema.graphql.
 
-- L2 - Fetching the results of the query using the psycopg `db_cursor` database cursor object method [`execute`](https://www.psycopg.org/docs/usage.html) to return the first row
+- L2 - Fetching the results of the query using the psycopg `db_cursor` database cursor object method [`execute`](https://www.psycopg.org/docs/usage.html) to return the first row.
 
-- L3 - firstly we assert that there is a row returned, as a non-null output of L2
+- L3 - firstly we assert that there is a row returned, as a non-null output of L2.
 
-- L3 - Assert the value of the first column returned of the row, e.g. "entity_field_a". Use the ordinal number of the column in the query as the index. In practise, this is abstracted within `tests/helpers/field_enums.py` with the use of an `enum`
+- L3 - Assert the value of the first column returned of the row, e.g. "entity_field_a". Use the ordinal number of the column in the query as the index. In practise, this is abstracted within `tests/helpers/field_enums.py` with the use of an `enum`.
 
 #### GQL querying
 
@@ -191,10 +191,10 @@ The SetUp method of each Entity test class will look similar to the following:
 17   self.assertEqual(entity[0]["entity_field_a"], "correct value", "Assertion error message")
 ```
 
-- L0-12 - define the GraphQL query for the entity and relevant fields
+- L0-12 - define the GraphQL query for the entity and relevant fields.
 - L14 - fetch the result of this query using the `gql_client` object method `execute`.
-- L16 - assert that the result is not null
-- L17 - assert the actual field value against the expected value
+- L16 - assert that the result is not null.
+- L17 - assert the actual field value against the expected value.
 
 
 
