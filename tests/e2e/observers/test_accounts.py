@@ -3,6 +3,7 @@ import sys
 from threading import Lock
 from typing import List, Tuple
 import unittest
+from unittest.mock import patch
 
 from gql import gql
 from reactivex.operators import map as map_
@@ -11,12 +12,12 @@ repo_root_path = Path(__file__).parent.parent.parent.parent.absolute()
 sys.path.insert(0, str(repo_root_path))
 
 from tests.helpers.clients import TestWithDBConn, TestWithGQLClient
-from tests.helpers.field_enums import Accounts
+from src.genesis.helpers.field_enums import Accounts
 from tests.helpers.genesis_data import test_bank_state_balances, test_genesis_data
 
 from src.genesis.state.bank import Balance
 from src.genesis.genesis import Genesis
-from src.genesis.observers import Account, AccountsObserver, AccountsManager, accounts_keys_path
+from src.genesis.observers import Account, AccountsObserver, AccountsManager
 
 
 class TestAccountsObserver(TestWithDBConn):
@@ -46,7 +47,6 @@ class TestAccountsObserver(TestWithDBConn):
         assert (lock.acquire(True, 5))
 
 
-# TODO: test with existing account(s)
 class TestAccountsManager(TestWithDBConn, TestWithGQLClient):
     test_manager: AccountsManager
     completed = False
@@ -64,8 +64,26 @@ class TestAccountsManager(TestWithDBConn, TestWithGQLClient):
         def on_completed():
             cls.completed = True
 
+        cls.completed = False
         cls.test_manager = AccountsManager(cls.db_conn, on_completed=on_completed)
         cls.test_manager.observe(Genesis(**test_genesis_data).source)
+
+    @patch("logging.Logger.warning")
+    def test_duplicate(self, logger_warning_mock):
+        duplicate_message = "Duplicate account occurred"
+
+        self.completed = False
+
+        def on_completed():
+            self.completed = True
+
+        account_manager = AccountsManager(self.db_conn, on_completed=on_completed)
+        account_manager.observe(Genesis(**test_genesis_data).source)
+        assert self.completed
+
+        assert logger_warning_mock.call_count == 2
+        assert duplicate_message in logger_warning_mock.mock_calls[0].args[0]
+        assert duplicate_message in logger_warning_mock.mock_calls[1].args[0]
 
     def test_sql_retrieval(self):
         self.assertTrue(self.completed)
