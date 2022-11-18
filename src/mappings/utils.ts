@@ -92,7 +92,9 @@ export async function trackUnprocessed(error: Error, primitives: Primitives): Pr
             block.block.id : error.stack;
     sha256.write(hashInput);
     sha256.end();
-    // NB: ID is base64 encoded representation of the sha256 of `raw`.
+    // NB: ID is base64 encoded representation of the sha256 of either:
+    // 1. the conventional ID of the "highest-level" primitive available or
+    // 2. the error stacktrace, if none are available (i.e. handle block error)
     const id = sha256.read().toString("base64");
     const eventId = event ? messageId(event) : undefined;
     const _messageId = event ? messageId(event) : undefined;
