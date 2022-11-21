@@ -1,6 +1,16 @@
 import {CosmosBlock, CosmosEvent, CosmosMessage, CosmosTransaction} from "@subql/types-cosmos";
 import {Account, Interface, UnprocessedEntity} from "../types";
-import { createHash } from "crypto";
+import {createHash} from "crypto";
+import {Attribute} from "@cosmjs/stargate/build/logs";
+
+export type Primitive = CosmosEvent | CosmosMessage | CosmosTransaction | CosmosBlock;
+
+export interface Primitives {
+  event?: CosmosEvent;
+  msg?: CosmosMessage;
+  tx?: CosmosTransaction;
+  block?: CosmosBlock;
+}
 
 // messageId returns the id of the message passed or
 // that of the message which generated the event passed.
@@ -41,15 +51,6 @@ export function getJaccardResult(payload: object): Interface {
     coefficient = match = diff = 0;
   });
   return prediction.getInterface(); // return best matched Interface to contract
-}
-
-export type Primitive = CosmosEvent | CosmosMessage | CosmosTransaction | CosmosBlock;
-
-export interface Primitives {
-  event?: CosmosEvent;
-  msg?: CosmosMessage;
-  tx?: CosmosTransaction;
-  block?: CosmosBlock;
 }
 
 export async function attemptHandling(input: Primitive,
@@ -167,4 +168,21 @@ class LegacyBridgeSwapStructure extends Structure {
   static getInterface() {
     return Interface.LegacyBridgeSwap;
   }
+}
+
+export interface BaseEventAttributesI {
+  action: string;
+}
+
+// (see: https://github.com/CosmWasm/wasmd/blob/main/x/wasm/keeper/events.go)
+export interface WasmdEventAttributesI extends BaseEventAttributesI {
+  _contract_address: string;
+}
+
+export function parseAttributes<T extends BaseEventAttributesI>(attributes: readonly Attribute[]): T {
+  // @ts-ignore
+  return attributes.reduce((acc, curr) => {
+    acc[curr.key] = curr.value;
+    return acc as T;
+  }, {});
 }
