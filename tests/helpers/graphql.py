@@ -1,17 +1,18 @@
 import json
 import re
+from typing import Dict
 
 from gql import gql
 
 json_keys_regex = re.compile('"(\w+)":')
 
 
-def to_gql(obj):
+def to_gql(obj: Dict):
     # NB: strip quotes from object keys
     return json_keys_regex.sub("\g<1>:", json.dumps(obj))
 
 
-def test_filtered_query(root_entity, _filter, nodes_string, _order=""):
+def test_filtered_query(root_entity: str, _filter: Dict, nodes_string: str, _order: str = ""):
     filter_string = to_gql(_filter)
 
     return gql(
