@@ -2,6 +2,7 @@ import json
 import re
 from typing import Dict
 
+import graphql
 from gql import gql
 
 json_keys_regex = re.compile('"(\w+)":')
@@ -12,7 +13,7 @@ def to_gql(obj: Dict):
     return json_keys_regex.sub("\g<1>:", json.dumps(obj))
 
 
-def test_filtered_query(root_entity: str, _filter: Dict, nodes_string: str, _order: str = ""):
+def test_filtered_query(root_entity: str, _filter: Dict, nodes_string: str, _order: str = "") -> graphql.DocumentNode:
     filter_string = to_gql(_filter)
 
     return gql(

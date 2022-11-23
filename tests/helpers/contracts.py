@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from typing import Optional, Union
 
 import requests
 from cosmpy.aerial.client import LedgerClient
@@ -23,6 +24,21 @@ class BridgeContractConfig:
     next_swap_id: int
 
 
+@dataclass_json
+@dataclass
+class AlmanacContractConfig:
+    stake_denom: str
+    expiry_height: Optional[int]
+    register_stake_amount: Optional[str]
+    admin: Optional[str]
+
+    @property
+    def register_stake_funds(self) -> Union[None, str]:
+        if self.register_stake_amount == "0":
+            return None
+        return self.register_stake_amount + self.stake_denom
+
+
 DefaultBridgeContractConfig = BridgeContractConfig(
     cap="250000000000000000000000000",
     reverse_aggregated_allowance="3000000000000000000000000",
@@ -33,6 +49,13 @@ DefaultBridgeContractConfig = BridgeContractConfig(
     paused_since_block=18446744073709551615,
     denom="atestfet",
     next_swap_id=0,
+)
+
+DefaultAlmanacContractConfig = AlmanacContractConfig(
+    stake_denom="atestfet",
+    expiry_height=2,
+    register_stake_amount="0",
+    admin=None
 )
 
 
@@ -122,3 +145,16 @@ class BridgeContract(LedgerContract):
         # and it will instantiate the contract only if contract.address is None
         # see: https://github.com/fetchai/cosmpy/blob/master/cosmpy/aerial/contract/__init__.py#L168-L179
         self.deploy(cfg.to_dict(), admin, store_gas_limit=3000000)
+
+
+class AlmanacContract(LedgerContract):
+    def __init__(self, client: LedgerClient, admin: Wallet, cfg: AlmanacContractConfig = DefaultAlmanacContractConfig):
+        url = "https://github.com/fetchai/contract-agent-almanac/releases/download/v0.1.1/contract_agent_almanac.wasm"
+        contract_path = ensure_contract("almanac", url)
+        super().__init__(contract_path, client)
+
+        self.deploy(
+            cfg.to_dict(),
+            admin,
+            store_gas_limit=3000000
+        )
