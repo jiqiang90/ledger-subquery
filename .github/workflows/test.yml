@@ -1,11 +1,10 @@
-name: End-to-end tests
+name: Build postgres image
 
-on:
-  pull_request:
-    branches: [main]
+on: push
 
 jobs:
-  e2e-tests:
+  ledger-subquery:
+    name: build
     runs-on: ubuntu-latest
 
     steps:
@@ -13,43 +12,28 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Update
-        run: sudo apt update
-      - name: Install OS dependencies
-        run: sudo apt install -y python3-dev nodejs
-
-      - uses: actions/checkout@v3
+      # Authenticate to GCP
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v0'
         with:
-          submodules: recursive
+          credentials_json: '${{ secrets.DEVOPS_IMAGES_SA_KEY }}'
 
-      - name: Install NodeJS dependencies
-        run: yarn install
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v0'
 
-      - name: Lint TypeScript
-        run: yarn lint
+      - run: 'gcloud info'
 
-      - name: Codegen TypeScript
-        run: yarn codegen
+      # Configure docker to use the gcloud command-line tool as a credential helper
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker -q
 
-      - name: Build TypeScript
-        run: yarn build
-
-      - name: Run TypeScript unit tests
-        run: yarn test
-
-      - name: Start-up local test environment
-        uses: isbang/compose-action@v1.2.0
+      # Docker build ; docker push
+      - name: Build and push postgres
+        uses: docker/build-push-action@v3
         with:
-          compose-file: "./ci-compose.yml"
-
-      # NB: doing this after start-up gives the test env time to come up
-      - name: Install Python dependencies
-        uses: palewire/install-python-pipenv-pipfile@v2
-        with:
-          python-version: 3.9
-
-      - name: Run Python unit tests
-        run: pipenv run python -m unittest discover -s ./tests/unit
-
-      - name: Run end-to-end tests
-        run: pipenv run python -m unittest discover -s ./tests/e2e
+          context: .
+          file: ./docker/plv8.dockerfile
+          push: true
+          tags: |
+            gcr.io/fetch-ai-images/subquery-postgres:863ce7d
