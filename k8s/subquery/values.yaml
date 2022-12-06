@@ -5,10 +5,7 @@ subquery:
     startBlock: "827201"
     networkEndpoint: https://rpc-dorado.fetch.ai:443
     chainId: "dorado-1"
-    batchSize: 1
-
-    observability:
-      
+    batchSize: 1      
 
   api:
     image: gcr.io/fetch-ai-sandbox/subquery-api
@@ -27,7 +24,6 @@ subquery:
     
     observability:
       name: ledger-subquery-graphql-api
-      collector: http://signoz-otel-collector.signoz.svc.cluster.local:4317
 
   otelCollector: http://signoz-otel-collector.signoz.svc.cluster.local:4317
   
