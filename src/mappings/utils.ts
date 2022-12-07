@@ -180,6 +180,7 @@ export interface WasmdEventAttributesI extends BaseEventAttributesI {
 }
 
 export function parseAttributes<T extends BaseEventAttributesI>(attributes: readonly Attribute[]): T {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   return attributes.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
