@@ -59,7 +59,16 @@ DefaultAlmanacContractConfig = AlmanacContractConfig(
 )
 
 
-def ensure_contract(name: str, url: str) -> str:
+def download_contract(url: str, token: Optional[str] = None) -> bytes:
+    headers = None
+    if token is not None:
+        headers = {"authorization": token}
+
+    response = requests.request("get", url, headers=headers)
+    return response.content
+
+
+def ensure_contract(name: str, url: str, token: Optional[str] = None) -> str:
     contract_path = f".contract/{name}.wasm"
     if not os.path.exists(".contract"):
         os.mkdir(".contract")
@@ -67,9 +76,9 @@ def ensure_contract(name: str, url: str) -> str:
         temp = open(contract_path, "rb")
         temp.close()
     except OSError:
-        contract_request = requests.get(url)
+        contract_content = download_contract(url, token)
         with open(contract_path, "wb") as file:
-            file.write(contract_request.content)
+            file.write(contract_content)
     finally:
         return contract_path
 
@@ -149,6 +158,7 @@ class BridgeContract(LedgerContract):
 
 class AlmanacContract(LedgerContract):
     def __init__(self, client: LedgerClient, admin: Wallet, cfg: AlmanacContractConfig = DefaultAlmanacContractConfig):
+        token = os.environ.get("GITHUB_AUTHORIZATION_TOKEN")
         url = "https://github.com/fetchai/contract-agent-almanac/releases/download/v0.1.1/contract_agent_almanac.wasm"
         contract_path = ensure_contract("almanac", url)
         super().__init__(contract_path, client)
