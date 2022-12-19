@@ -36,7 +36,7 @@ def sql_by_expiry_height(registration_row: Tuple) -> int:
 class Scenario:
     name: str
     query: graphql.DocumentNode
-    expected: Any
+    expected: any
 
 
 class TestAlmanac(EntityTest):

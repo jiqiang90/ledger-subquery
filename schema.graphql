@@ -260,6 +260,7 @@ enum Interface {
   Uncertain,
   CW20,
   LegacyBridgeSwap,
+  MicroAgentAlmanac,
 }
 
 enum AccessType {

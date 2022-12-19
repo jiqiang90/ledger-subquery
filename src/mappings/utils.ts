@@ -4,7 +4,7 @@ import {createHash} from "crypto";
 import {Attribute} from "@cosmjs/stargate/build/logs";
 import {LegacyBridgeSwapStructure} from "./wasm/contracts/bridge";
 import {CW20Structure} from "./wasm/contracts/cw20";
-import {Structure} from "./wasm/contracts/types";
+import {BaseStructure} from "./wasm/contracts/base";
 import {MicroAgentAlmanacStructure} from "./wasm/contracts/almanac";
 
 export type Primitive = CosmosEvent | CosmosMessage | CosmosTransaction | CosmosBlock;
@@ -31,7 +31,7 @@ export async function checkBalancesAccount(address: string, chainId: string) {
 }
 
 export function getJaccardResult(payload: object): Interface {
-  let prediction = Structure, prediction_coefficient = 0.5;   // prediction coefficient can be set as a minimum threshold for the certainty of an output
+  let prediction = BaseStructure, prediction_coefficient = 0.5;   // prediction coefficient can be set as a minimum threshold for the certainty of an output
   let diff = 0, match = 0, coefficient = 0;                   // where coefficient of 1 is a perfect property key match, 2 is a perfect match of property and type
   // TODO: refactor
   const structs = [CW20Structure, LegacyBridgeSwapStructure, MicroAgentAlmanacStructure];
