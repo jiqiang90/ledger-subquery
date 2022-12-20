@@ -36,7 +36,7 @@ def sql_by_expiry_height(registration_row: Tuple) -> int:
 class Scenario:
     name: str
     query: graphql.DocumentNode
-    expected: any
+    expected: Any
 
 
 class TestAlmanac(EntityTest):
@@ -402,6 +402,7 @@ class TestAlmanac(EntityTest):
         self.assertEqual(expected_interface, contract["interface"])
         self.assertRegex(contract["storeMessageId"], msg_id_regex)
         self.assertRegex(contract["instantiateMessageId"], msg_id_regex)
+
 
 
 if __name__ == "__main__":
