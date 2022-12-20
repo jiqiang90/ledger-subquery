@@ -9,6 +9,7 @@ export declare type FunctionPropertyNames<T> = {
     [K in keyof T]: T[K] extends Function ? K : never;
 }[keyof T];
 export interface Store {
+    selectRaw(query: string): Promise<Record<string, unknown>[]>;
     get(entity: string, id: string): Promise<Entity | null>;
     getByField(entity: string, field: string, value: any): Promise<Entity[]>;
     getOneByField(entity: string, field: string, value: any): Promise<Entity | null>;
