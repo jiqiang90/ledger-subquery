@@ -10,6 +10,11 @@ RUN yarn install --frozen-lockfile
 
 # add the remaining parts of the produce the build
 COPY . /app
+
+# NB: replace node-cosmos and types-cosmos packages (not included in subql workspace)
+COPY ./docker/node-cosmos /app/node_modules/@subql/node-cosmos
+COPY ./docker/types-cosmos /app/node_modules/@subql/types-cosmos
+
 RUN yarn codegen && yarn build
 
 # build subql common package
