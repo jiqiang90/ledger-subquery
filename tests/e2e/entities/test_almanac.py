@@ -404,6 +404,5 @@ class TestAlmanac(EntityTest):
         self.assertRegex(contract["instantiateMessageId"], msg_id_regex)
 
 
-
 if __name__ == "__main__":
     unittest.main()
