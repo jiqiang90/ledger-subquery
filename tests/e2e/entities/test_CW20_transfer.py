@@ -1,16 +1,11 @@
 import datetime as dt
-import sys
 import time
 import unittest
-from pathlib import Path
 
 from src.genesis.helpers.field_enums import Cw20TransferFields
 from tests.helpers.contracts import Cw20Contract
 from tests.helpers.entity_test import EntityTest
 from tests.helpers.graphql import filtered_test_query
-
-repo_root_path = Path(__file__).parent.parent.parent.parent.absolute()
-sys.path.insert(0, str(repo_root_path))
 
 
 class TestCw20Transfer(EntityTest):
@@ -49,7 +44,7 @@ class TestCw20Transfer(EntityTest):
             "\nDBError: transfer recipient address does not match",
         )
         self.assertEqual(
-            transfer[Cw20TransferFields.contract.value],
+            transfer[Cw20TransferFields.contract_id.value],
             self._contract.address,
             "\nDBError: contract address does not match",
         )
@@ -77,7 +72,7 @@ class TestCw20Transfer(EntityTest):
                 id
                 toAddress
                 fromAddress
-                contract
+                contract { id }
                 amount
                 message { id }
                 transaction { id }
@@ -129,7 +124,7 @@ class TestCw20Transfer(EntityTest):
 
         # query Cw20 transfers, filter by contract address
         filter_by_contract_equals = filtered_cw20_transfer_query(
-            {"contract": {"equalTo": str(self._contract.address)}}
+            {"contract": {"id": {"equalTo": str(self._contract.address)}}}
         )
 
         # query Cw20 transfers, filter by amount
@@ -171,7 +166,7 @@ class TestCw20Transfer(EntityTest):
                     "\nGQLError: fund amount does not match",
                 )
                 self.assertEqual(
-                    transfer[0]["contract"],
+                    transfer[0]["contract"]["id"],
                     self._contract.address,
                     "\nGQLError: contract address does not match",
                 )
