@@ -2,13 +2,13 @@ import {CosmosEvent} from "@subql/types-cosmos";
 import {Cw20BalanceChange, Cw20Transfer} from "../../types";
 import {
   attemptHandling,
-  checkBalancesAccount,
+  ensureAccountExists,
   unprocessedEventHandler,
   messageId,
 } from "../utils";
 
 export async function saveCw20BalanceEvent(id: string, address: string, amount: bigint, contractId: string, event: CosmosEvent) {
-  await checkBalancesAccount(address, event.block.block.header.chainId);
+  await ensureAccountExists(address, event.block.block.header.chainId);
   const msgId = messageId(event.msg);
   const Cw20BalanceChangeEntity = Cw20BalanceChange.create({
     id,

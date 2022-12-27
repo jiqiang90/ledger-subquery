@@ -18,7 +18,7 @@ export function messageId(msg: CosmosMessage | CosmosEvent): string {
   return `${msg.tx.hash}-${msg.idx}`;
 }
 
-export async function checkBalancesAccount(address: string, chainId: string) {
+export async function ensureAccountExists(address: string, chainId: string): Promise<void> {
   let accountEntity = await Account.get(address);
   if (typeof (accountEntity) === "undefined") {
     accountEntity = Account.create({id: address, chainId});
