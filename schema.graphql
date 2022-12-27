@@ -39,7 +39,8 @@ type Transaction @entity {
   log: String!
   timeoutHeight: BigInt @index
   # NB: only the first signer!
-  signerAddress: String @index
+  signerAddress: String! @index
+  account: Account!
   messages: [Message] @derivedFrom(field: "transaction")
 }
 
@@ -146,6 +147,7 @@ type Account @entity {
   # id is the address
   id: ID!
   chainId: String! @index
+  transactions: [Transaction]! @derivedFrom(field: "account")
   nativeBalanceChanges: [NativeBalanceChange]! @derivedFrom(field: "account")
   cw20BalanceChanges: [Cw20BalanceChange]! @derivedFrom(field: "account")
   genesisBalances: [GenesisBalance] @derivedFrom(field: "account")

@@ -1,7 +1,7 @@
 import {CosmosBlock, CosmosEvent, CosmosMessage, CosmosTransaction} from "@subql/types-cosmos";
 import {Block, Event, EventAttribute, Message, Transaction, TxStatus} from "../types";
 import {
-  attemptHandling,
+  attemptHandling, ensureAccountExists,
   messageId,
   primitivesFromMsg,
   primitivesFromTx,
@@ -74,6 +74,8 @@ async function _handleTransaction(tx: CosmosTransaction): Promise<void> {
     signerAddress = toBech32("fetch", ripemd160.digest());
   }
 
+  await ensureAccountExists(signerAddress, tx.block.block.header.chainId);
+
   const txEntity = Transaction.create({
     id: tx.hash,
     blockId: tx.block.block.id,
@@ -85,6 +87,7 @@ async function _handleTransaction(tx: CosmosTransaction): Promise<void> {
     log: tx.tx.log,
     status,
     signerAddress,
+    accountId: signerAddress,
   });
 
   await txEntity.save();
