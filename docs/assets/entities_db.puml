@@ -21,6 +21,7 @@ entity Transaction {
   +timeoutHeight
   +signerAddress
   ..relations..
+  account
   events
   messages
   block
@@ -54,11 +55,22 @@ entity EventAttribute {
   event
 }
 
+entity Account {
+    +id
+    +chainId
+    ..relations..
+    transactions
+    nativeBalanceChanges
+    cw20BalanceChanges
+    genesisBalances
+}
+
 
 Block ||--o{ Transaction
 Block ||--o{ Message
 Block ||--o{ Event
 
+Transaction }|--|| Account
 Transaction ||--|{ Event
 Transaction ||--|{ Message
 
