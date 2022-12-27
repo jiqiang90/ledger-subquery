@@ -1,7 +1,7 @@
 import json
 import time
 import unittest
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 from gql import gql
 
@@ -38,7 +38,7 @@ class TestNativePrimitives(EntityTest):
     #   - message
     #   - transfer
     expected_events_len = 2 * 4
-    expected_sql_accounts = []
+    expected_sql_accounts: List[Tuple] = []
 
     @classmethod
     def setUpClass(cls):
@@ -66,7 +66,6 @@ class TestNativePrimitives(EntityTest):
         delegator_sql_account[Accounts.id.value] = cls.delegator_address
         delegator_sql_account[Accounts.chain_id.value] = cls.cfg.chain_id
         cls.expected_sql_accounts.append(tuple(delegator_sql_account))
-
 
         # Wait for subql node to sync
         time.sleep(5)
@@ -127,7 +126,9 @@ class TestNativePrimitives(EntityTest):
         def sql_account_id(account: Union[List, Tuple]):
             return account[Accounts.id.value]
 
-        sorted_expected_accounts = sorted(self.expected_sql_accounts, key=sql_account_id)
+        sorted_expected_accounts = sorted(
+            self.expected_sql_accounts, key=sql_account_id
+        )
         sorted_actual_accounts = sorted(accounts, key=sql_account_id)
         self.assertListEqual(sorted_expected_accounts, sorted_actual_accounts)
 
@@ -136,8 +137,10 @@ class TestNativePrimitives(EntityTest):
         self.assertEqual(len(txs), self.expected_txs_len)
         for tx in txs:
             self.assertTrue(len(tx[Transactions.block_id.value]) == 64)
-            self.assertTrue(tx[Transactions.account_id.value] == self.validator_address or
-                            tx[Transactions.account_id.value] == self.delegator_address)
+            self.assertTrue(
+                tx[Transactions.account_id.value] == self.validator_address
+                or tx[Transactions.account_id.value] == self.delegator_address
+            )
             self.assertGreater(tx[Transactions.gas_used.value], 0)
             self.assertGreater(tx[Transactions.gas_wanted.value], 0)
             tx_signer_address = tx[Transactions.signer_address.value]
