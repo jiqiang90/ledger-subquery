@@ -1,10 +1,17 @@
 import json
 import time
 import unittest
+from typing import Tuple, List, Union
 
 from gql import gql
 
-from src.genesis.helpers.field_enums import Blocks, Events, Messages, Transactions
+from src.genesis.helpers.field_enums import (
+    Accounts,
+    Blocks,
+    Events,
+    Messages,
+    Transactions,
+)
 from tests.helpers.entity_test import EntityTest
 from tests.helpers.graphql import filtered_test_query
 from tests.helpers.regexes import (
@@ -31,11 +38,12 @@ class TestNativePrimitives(EntityTest):
     #   - message
     #   - transfer
     expected_events_len = 2 * 4
+    expected_sql_accounts = []
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.clean_db()
+        cls.clean_db({"accounts"})
 
         tx = cls.ledger_client.send_tokens(
             cls.delegator_address, cls.amount, cls.denom, cls.validator_wallet
@@ -43,11 +51,22 @@ class TestNativePrimitives(EntityTest):
         tx.wait_to_complete()
         cls.assertTrue(tx.response.is_successful(), "first set-up tx failed")
 
+        validator_sql_account = [None] * len([column for column in Accounts])
+        validator_sql_account[Accounts.id.value] = cls.validator_address
+        validator_sql_account[Accounts.chain_id.value] = cls.cfg.chain_id
+        cls.expected_sql_accounts.append(tuple(validator_sql_account))
+
         tx = cls.ledger_client.send_tokens(
             cls.validator_address, int(cls.amount / 10), cls.denom, cls.delegator_wallet
         )
         tx.wait_to_complete()
         cls.assertTrue(tx.response.is_successful(), "second set-up tx failed")
+
+        delegator_sql_account = [None] * len([column for column in Accounts])
+        delegator_sql_account[Accounts.id.value] = cls.delegator_address
+        delegator_sql_account[Accounts.chain_id.value] = cls.cfg.chain_id
+        cls.expected_sql_accounts.append(tuple(delegator_sql_account))
+
 
         # Wait for subql node to sync
         time.sleep(5)
@@ -100,11 +119,25 @@ class TestNativePrimitives(EntityTest):
             # TODO: timestamp should be unix timestamp
             self.assertNotEqual(block["timestamp"], "")
 
+    def test_accounts(self):
+        accounts = self.db_cursor.execute(Accounts.select_query()).fetchall()
+        # NB: validator and delegator sent txs
+        self.assertEqual(2, len(accounts))
+
+        def sql_account_id(account: Union[List, Tuple]):
+            return account[Accounts.id.value]
+
+        sorted_expected_accounts = sorted(self.expected_sql_accounts, key=sql_account_id)
+        sorted_actual_accounts = sorted(accounts, key=sql_account_id)
+        self.assertListEqual(sorted_expected_accounts, sorted_actual_accounts)
+
     def test_transactions(self):
         txs = self.db_cursor.execute(Transactions.select_query()).fetchall()
         self.assertEqual(len(txs), self.expected_txs_len)
         for tx in txs:
             self.assertTrue(len(tx[Transactions.block_id.value]) == 64)
+            self.assertTrue(tx[Transactions.account_id.value] == self.validator_address or
+                            tx[Transactions.account_id.value] == self.delegator_address)
             self.assertGreater(tx[Transactions.gas_used.value], 0)
             self.assertGreater(tx[Transactions.gas_wanted.value], 0)
             tx_signer_address = tx[Transactions.signer_address.value]
@@ -134,8 +167,12 @@ class TestNativePrimitives(EntityTest):
                         gasUsed
                         gasWanted
                         signerAddress
+                        accountId
                         # TODO:
                         # fees
+                        # memo
+                        # status
+                        # timeoutHeight
                     }
                 }
             }
@@ -156,7 +193,11 @@ class TestNativePrimitives(EntityTest):
                 tx["signerAddress"] == self.validator_address
                 or tx["signerAddress"] == self.delegator_address
             )
-            # TODO: fees
+            self.assertTrue(
+                tx["accountId"] == self.validator_address
+                or tx["accountId"] == self.delegator_address
+            )
+            # TODO: fees, memo, status, timeoutHeight
 
     def test_messages(self):
         msgs = self.db_cursor.execute(Messages.select_query()).fetchall()

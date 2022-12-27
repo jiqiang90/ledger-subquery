@@ -67,6 +67,7 @@ class Transactions(NamedFields):
     log = 7
     timeout_height = 8
     signer_address = 9
+    account_id = 10
 
 
 class Messages(NamedFields):

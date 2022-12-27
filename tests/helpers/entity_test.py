@@ -26,6 +26,7 @@ class EntityTest(TestWithDBConn, TestWithGQLClient):
     validator_operator_address = None
 
     ledger_client = None
+    cfg = None
 
     @classmethod
     def setUpClass(cls):
@@ -41,7 +42,7 @@ class EntityTest(TestWithDBConn, TestWithGQLClient):
         cls.delegator_wallet = LocalWallet.from_mnemonic(DELEGATOR_MNEMONIC)
         cls.delegator_address = str(cls.delegator_wallet.address())
 
-        cfg = NetworkConfig(
+        cls.cfg = NetworkConfig(
             chain_id="fetchchain",
             url=f"grpc+http://{FETCHD_HOST}:{FETCHD_GRPC_PORT}",
             fee_minimum_gas_price=1,
@@ -51,7 +52,7 @@ class EntityTest(TestWithDBConn, TestWithGQLClient):
 
         gov_client = grpc.insecure_channel(f"{FETCHD_HOST}:{FETCHD_GRPC_PORT}")
 
-        cls.ledger_client = LedgerClient(cfg)
+        cls.ledger_client = LedgerClient(cls.cfg)
         cls.gov_module = query_pb2_grpc.QueryStub(gov_client)
 
     @classmethod
