@@ -50,6 +50,7 @@ async function _handleExecuteContractEvent(event: CosmosEvent): Promise<void> {
     method,
     contractId,
     funds,
+    eventId: id,
     messageId: id,
     transactionId: msg.tx.hash,
     blockId: msg.block.block.id

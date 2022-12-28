@@ -66,6 +66,7 @@ type ExecuteContractMessage @entity {
   method: String! @index
   funds: [Coin]!
   message: Message!
+  event: Event!
   transaction: Transaction!
   block: Block!
 }
