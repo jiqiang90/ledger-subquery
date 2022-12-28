@@ -1,7 +1,8 @@
 name: End-to-end tests
 
 on:
-  pull_request: null
+  pull_request:
+    branches: [main]
 
 jobs:
   e2e-tests:
