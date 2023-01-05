@@ -1,11 +1,15 @@
 from datetime import timedelta
-from typing import Tuple, Optional, List, Union
+from typing import List, Optional, Tuple, Union
 
 from psycopg import Connection
 from psycopg.errors import UniqueViolation
-from reactivex import Observer, Observable
+from reactivex import Observable, Observer
 from reactivex.abc import DisposableBase
-from reactivex.operators import filter as filter_, map as map_, delay as delay_, observe_on, buffer_with_count
+from reactivex.operators import buffer_with_count
+from reactivex.operators import delay as delay_
+from reactivex.operators import filter as filter_
+from reactivex.operators import map as map_
+from reactivex.operators import observe_on
 from reactivex.scheduler.scheduler import Scheduler
 
 from src.genesis.db import DBTypes, TableManager
@@ -20,7 +24,7 @@ _logger = get_logger(__name__)
 
 class NativeBalancesObserver(Observer):
     @staticmethod
-    def filter_balances(next_: Tuple[str, any]) -> bool:
+    def filter_balances(next_: Tuple[str, Balance]) -> bool:
         return next_[0].startswith(native_balances_keys_path)
 
     @staticmethod
@@ -30,7 +34,9 @@ class NativeBalancesObserver(Observer):
     def __init__(self, on_next=None, on_completed=None, on_error=None) -> None:
         super().__init__(on_next=on_next, on_completed=on_completed, on_error=on_error)
 
-    def subscribe_to(self, observable: Observable, pre_operators=None, post_operators=None) -> DisposableBase:
+    def subscribe_to(
+        self, observable: Observable, pre_operators=None, post_operators=None
+    ) -> DisposableBase:
         _operators = [
             filter_(self.filter_balances),
         ]
@@ -39,16 +45,16 @@ class NativeBalancesObserver(Observer):
         if pre_operators is not None:
             _operators = pre_operators + _operators
 
-        return observable.pipe(*_operators).subscribe(on_next=self.on_next,
-                                                      on_completed=self.on_completed,
-                                                      on_error=self.on_error)
+        return observable.pipe(*_operators).subscribe(
+            on_next=self.on_next, on_completed=self.on_completed, on_error=self.on_error
+        )
 
 
 class NativeBalancesManager(TableManager):
     _observer: NativeBalancesObserver
     _subscription: DisposableBase
     _db_conn: Connection
-    _table = NativeBalances.table
+    _table = NativeBalances.get_table()
     _columns = (
         ("id", DBTypes.text),
         ("account_id", DBTypes.text),
@@ -64,26 +70,30 @@ class NativeBalancesManager(TableManager):
     def __init__(self, db_conn: Connection, on_completed=None, on_error=None) -> None:
         super().__init__(db_conn)
         self._ensure_table()
-        self._observer = NativeBalancesObserver(on_next=self.copy_balances,
-                                                on_completed=on_completed,
-                                                on_error=on_error)
+        self._observer = NativeBalancesObserver(
+            on_next=self.copy_balances, on_completed=on_completed, on_error=on_error
+        )
 
     @classmethod
     def _get_db_id(cls, address: str, denom: str):
         return f"{address}-{denom}"
 
     @classmethod
-    def _get_name_and_index(cls, e: UniqueViolation, balances: List[Balance]) -> Tuple[str, Tuple[int, int]]:
+    def _get_name_and_index(
+        cls, e: UniqueViolation, balances: List[Balance]
+    ) -> Tuple[str, Optional[int], Optional[int]]:
         # Extract account name and coin from error string
         duplicate_balance_id = cls._extract_id_from_unique_violation_exception(e)
 
         # Find duplicate balance index
-        duplicate_balance_index = None
-        duplicate_coin_index = None
+        duplicate_balance_index: Optional[int] = None
+        duplicate_coin_index: Optional[int] = None
         for i in range(len(balances)):
             for j in range(len(balances[i].coins)):
-                if cls._get_db_id(balances[i].address,
-                                  balances[i].coins[j].denom) in duplicate_balance_id:
+                if (
+                    cls._get_db_id(balances[i].address, balances[i].coins[j].denom)
+                    in duplicate_balance_id
+                ):
                     duplicate_balance_index = i
                     duplicate_coin_index = j
 
@@ -96,43 +106,73 @@ class NativeBalancesManager(TableManager):
             while duplicate_occured:
                 try:
                     duplicate_occured = False
-                    with db.copy(f'COPY {self._table} ({",".join(self.column_names)}) FROM STDIN') as copy:
+                    with db.copy(
+                        f'COPY {self._table} ({",".join(self.get_column_names())}) FROM STDIN'
+                    ) as copy:
                         for balance in balances:
                             for coin in balance.coins:
                                 id_ = self._get_db_id(balance.address, coin.denom)
-                                copy.write_row((f"{v}" for v in (id_, balance.address, coin.amount, coin.denom)))
+                                copy.write_row(
+                                    (
+                                        str(id_),
+                                        str(balance.address),
+                                        str(coin.amount),
+                                        str(coin.denom),
+                                    )
+                                )
 
                 except UniqueViolation as e:
                     duplicate_occured = True
                     self._db_conn.commit()
 
-                    duplicate_balance_id, duplicate_balance_index, duplicate_coin_index = \
-                        self._get_name_and_index(e, balances)
+                    (
+                        duplicate_balance_id,
+                        duplicate_balance_index,
+                        duplicate_coin_index,
+                    ) = self._get_name_and_index(e, balances)
 
                     if duplicate_balance_index is None or duplicate_coin_index is None:
                         raise RuntimeError(
-                            f"Error during duplicate balance handling, account {duplicate_balance_id} not found")
+                            f"Error during duplicate balance handling, account {duplicate_balance_id} not found"
+                        )
 
                     # Compare balance in genesis with balance in db
-                    amount_on_list = balances[duplicate_balance_index].coins[duplicate_coin_index].amount
-                    amount_in_db = db.execute(NativeBalances.select_where(f"id = '{duplicate_balance_id}'")).fetchone()[
-                        2]
+                    amount_on_list: str = (
+                        balances[duplicate_balance_index]
+                        .coins[duplicate_coin_index]
+                        .amount
+                    )
+                    res_db_select = db.execute(
+                        NativeBalances.select_where(f"id = '{duplicate_balance_id}'")
+                    ).fetchone()
+
+                    assert res_db_select is not None
+
+                    amount_in_db: str = res_db_select[2]
 
                     if amount_on_list != amount_in_db:
                         raise RuntimeError(
-                            f"Balance for {duplicate_balance_id} in DB ({amount_in_db}) is different from genesis ({amount_on_list})")
+                            f"Balance for {duplicate_balance_id} in DB ({amount_in_db}) is different from genesis ({amount_on_list})"
+                        )
 
                     # Remove duplicate balance from queue
                     balances[duplicate_balance_index].coins.pop(duplicate_coin_index)
                     if not balances[duplicate_balance_index].coins:
                         balances.pop(duplicate_balance_index)
 
-                    _logger.warning(f"Duplicate balance occurred during COPY: {duplicate_balance_id}")
+                    _logger.warning(
+                        f"Duplicate balance occurred during COPY: {duplicate_balance_id}"
+                    )
 
         self._db_conn.commit()
 
-    def observe(self, observable: Observable, scheduler: Optional[Scheduler] = None,
-                buffer_size: int = 500, delay: Optional[Union[timedelta, float]] = None) -> None:
+    def observe(
+        self,
+        observable: Observable,
+        scheduler: Optional[Scheduler] = None,
+        buffer_size: int = 500,
+        delay: Optional[Union[timedelta, float]] = None,
+    ) -> None:
         pre_operators = []
         post_operators = [
             map_(self._observer.map_balance),
@@ -144,6 +184,6 @@ class NativeBalancesManager(TableManager):
         if scheduler is not None:
             pre_operators.append(observe_on(scheduler=scheduler))
 
-        self._subscription = self._observer.subscribe_to(observable,
-                                                         pre_operators=pre_operators,
-                                                         post_operators=post_operators)
+        self._subscription = self._observer.subscribe_to(
+            observable, pre_operators=pre_operators, post_operators=post_operators
+        )

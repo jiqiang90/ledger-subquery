@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import List, Dict
+from typing import Dict, List
 
-from .utils import Coin, ListConstructorMixin, list_field_with_default, OwnAttrsMixin
+from .utils import Coin, ListConstructorMixin, OwnAttrsMixin, list_field_with_default
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class BankStateData:
 
 
 class BankState(OwnAttrsMixin, BankStateData):
-    def __init__(self, **kwargs: Dict[str, any]):
+    def __init__(self, **kwargs):
         kwargs["balances"] = Balance.from_dict_list(kwargs.get("balances"))
         kwargs["supply"] = Coin.from_dict_list(kwargs.get("supply"))
         super().__init__(**kwargs)

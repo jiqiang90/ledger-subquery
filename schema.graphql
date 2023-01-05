@@ -11,9 +11,11 @@ enum TxStatus {
   Error
 }
 
-type EventAttribute @jsonField {
+type EventAttribute @entity {
+  id: ID!
   key: String!
   value: String!
+  event: Event!
 }
 
 type Block @entity {
@@ -52,7 +54,7 @@ type Message @entity {
 type Event @entity {
   id: ID!
   type: String! @index
-  attributes: [EventAttribute]!
+  attributes: [EventAttribute]! @derivedFrom(field: "event")
   log: String!
   transaction: Transaction!
   block: Block!
@@ -60,7 +62,7 @@ type Event @entity {
 
 type ExecuteContractMessage @entity {
   id: ID!
-  contract: String! @index
+  contract: Contract!
   method: String! @index
   funds: [Coin]!
   message: Message!
@@ -94,10 +96,17 @@ type DistDelegatorClaim @entity {
     denom: String!
 }
 
+type Contract @entity {
+  id: ID!
+  interface: Interface!
+  storeMessage: StoreContractMessage!
+  instantiateMessage: InstantiateContractMessage!
+}
+
 type LegacyBridgeSwap @entity {
   id: ID! # id field is always required and must look like this
   destination: String!
-  contract: String!
+  contract: Contract!
   amount: BigInt!
   denom: String!
   executeContractMessage: ExecuteContractMessage!
@@ -126,7 +135,7 @@ type Cw20Transfer @entity {
   id: ID!
   toAddress: String! @index
   fromAddress: String! @index
-  contract: String! @index
+  contract: Contract!
   amount: BigInt!
   message: Message!
   transaction: Transaction!
@@ -154,6 +163,45 @@ type AuthzExec @entity {
   grantee: String! @index
   subMessages: [AuthzExecMessage]! @derivedFrom(field: "authzExec")
   message: Message!
+  transaction: Transaction!
+  block: Block!
+}
+
+type Endpoint @jsonField {
+  url: String!
+  weight: Int!
+}
+
+type Agent @entity {
+  # id is the agent's address
+  id: ID!
+  almanacRegistrations: [AlmanacRegistration] @derivedFrom(field: "agent")
+}
+
+type AlmanacService @jsonField {
+  protocols: [String!]
+  endpoints: [Endpoint!]!
+}
+
+type AlmanacRecord @entity {
+  id: ID!
+  service: AlmanacService
+#  registration: AlmanacRegistration! @derivedFrom(field: "record")
+#  event: Event!
+  transaction: Transaction!
+  block: Block!
+}
+
+type AlmanacRegistration @entity {
+  id: ID!
+  expiryHeight: BigInt! @index
+  agent: Agent!
+  signature: String!
+  sequence: Int!
+  contract: Contract!
+  record: AlmanacRecord!
+#  TODO(workaround): consider relating to message
+#  event: Event!
   transaction: Transaction!
   block: Block!
 }
@@ -192,7 +240,7 @@ type IbcTransfer @entity {
 type Cw20BalanceChange @entity {
   id: ID!
   balanceOffset: BigInt!
-  contract: String! @index
+  contract: Contract!
   account: Account!
   executeContractMessage: ExecuteContractMessage!
   event: Event!
@@ -248,13 +296,6 @@ type InstantiateContractMessage @entity {
   message: Message!
   transaction: Transaction!
   block: Block!
-}
-
-type Contract @entity {
-  id: ID!
-  interfaces: [Interface]
-  storeMessage: StoreContractMessage!
-  instantiateMessage: InstantiateContractMessage!
 }
 
 type UnprocessedEntity @entity {

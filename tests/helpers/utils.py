@@ -1,15 +1,14 @@
-import sys
 import unittest
-from pathlib import Path
-from typing import List, Tuple, Dict
-
-repo_root_path = Path(__file__).parent.parent.parent.absolute()
-sys.path.insert(0, str(repo_root_path))
+from typing import Any, Dict, List, Tuple
 
 from src.genesis.state import OwnAttrsMixin
 
 
-def check_genesis_entries(test_case: unittest.TestCase, expected: List[Tuple[str, any]], actual: List[Tuple[str, any]]):
+def check_genesis_entries(
+    test_case: unittest.TestCase,
+    expected: List[Tuple[str, Any]],
+    actual: List[Tuple[str, Any]],
+):
     for i, entry in enumerate(expected):
         expected_key_paths, expected_value = entry
         actual_key_paths, actual_value = actual[i]
@@ -20,7 +19,7 @@ def check_genesis_entries(test_case: unittest.TestCase, expected: List[Tuple[str
     # TODO: check for extra stuff in actual (?)
 
 
-def check(test_case: unittest.TestCase, expected: any, actual: any):
+def check(test_case: unittest.TestCase, expected: Any, actual: Any):
     if isinstance(actual, OwnAttrsMixin):
         check_attrs(test_case, expected, actual)
         return
@@ -38,7 +37,7 @@ def check_list(test_case: unittest.TestCase, expected: List, actual: List):
         check(test_case, expected[i], v)
 
 
-def check_attrs(test_case: unittest.TestCase, expected: any, actual: any):
+def check_attrs(test_case: unittest.TestCase, expected: Any, actual: Any):
     for attr in actual.attrs:
         # TODO: unworkaround
         if attr == "data":

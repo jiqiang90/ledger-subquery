@@ -1,4 +1,4 @@
-from typing import Tuple, Generator, Any
+from typing import Any, Generator, Tuple
 
 from psycopg import Connection
 from psycopg.errors import UniqueViolation
@@ -8,13 +8,19 @@ from src.genesis.db.types import DBTypes
 
 def table_exists(db_conn: Connection, table: str) -> bool:
     with db_conn.cursor() as db:
-        return db.execute(f"""
+        res_db_execute = db.execute(
+            f"""
                 SELECT EXISTS (
                     SELECT FROM pg_tables WHERE
                         schemaname = 'app' AND
                         tablename  = '{table}'
                 )
-            """).fetchone()[0]
+            """
+        ).fetchone()
+
+        assert res_db_execute is not None
+
+        return res_db_execute[0]
 
 
 class TableManager:
@@ -27,25 +33,26 @@ class TableManager:
         self._db_conn = db_conn
 
     @classmethod
-    @property
-    def column_names(cls) -> Generator[str, Any, None]:
+    def get_column_names(cls) -> Generator[str, Any, None]:
         return (name for name, _ in cls._columns)
 
     @classmethod
     def select_query(cls) -> str:
         return f"""
-            SELECT {",".join(cls.column_names)} FROM {cls._table}
+            SELECT {",".join(cls.get_column_names())} FROM {cls._table}
         """
 
     def _ensure_table(self):
         with self._db_conn.cursor() as db:
-            db.execute(f"""
+            db.execute(
+                f"""
                 CREATE TABLE IF NOT EXISTS {self._table} (
                     {", ".join([f"{name} {type_.value}" for name, type_ in self._columns])}
                 );
                 -- TODO: psycopg break out of transaction
                 -- CREATE INDEX CONCURRENTLY ON {self._table} ({",".join(self._indexes)})
-            """)
+            """
+            )
             self._db_conn.commit()
             # TODO error checking / handling (?)
 
@@ -55,9 +62,11 @@ class TableManager:
             cascade_clause = "CASCADE"
 
         with self._db_conn.cursor() as db:
-            db.execute(f"""
+            db.execute(
+                f"""
                 DROP TABLE IF EXISTS {self._table} {cascade_clause};
-            """)
+            """
+            )
             self._db_conn.commit()
             # TODO error checking / handling (?)
 

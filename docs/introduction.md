@@ -104,11 +104,56 @@ query transferEventsDuring {
     type: {equalTo: "transfer"},
   }) {
     nodes {
-      attributes
+      attributes {
+        nodes {
+          key
+          value
+        }
+      }
     }
   }
 }
 ```
+
+### Order by / Sorting
+Each entity, by default, can be sorted by any of its respective fields.
+Additional support for ordering by certain fields on related entities is facilitated by custom ordering plugins generated from `makeAddPgTableOrderByPlugin` (see: [postgraphile-docs](https://www.graphile.org/postgraphile/make-add-pg-table-order-by-plugin/)).
+
+#### Block height
+Any entity which relates to `Block` can be ordered by a related block's `height` field:
+```graphql
+query contractExecByBlockHeight {
+  contractExecutionMessage (orderBy: EXECUTE_CONTRACT_MESSAGES_BY_BLOCK_HEIGHT_ASC) {
+    nodes {
+      id,
+      ...
+      Block {
+        height
+      }
+    }
+  }
+}
+```
+
+#### Contract Code ID
+The `contract` entity can be sorted by `codeId` through the `storeMessage` and `instantiateMessage` relations.
+```graphql
+query contractsByRelatedCodeID {
+  contracts (orderBy: CONTRACTS_BY_STORE_CONTRACT_MESSAGES_CODE_ID_ASC) {
+    #  or CONTRACTS_BY_INSTANTIATE_CONTRACT_MESSAGES_CODE_ID_ASC
+    nodes {
+      id,
+      ...
+      storeMessage {
+        codeId
+      }
+    }
+  }
+}
+```
+
+#### Order direction
+Each of these custom orders are implemented in both directions, ascending and descending. These directions are accessed through the ending characters of the order enum, by choosing either `_ASC` and `_DESC`.
 
 ### Aggregation
 
@@ -141,9 +186,63 @@ _(see: [schema.graphql](https://github.com/ledger-subquery/blob/main/schema.grap
 - transactions
 - messages
 - events
+- event attributes
 
-### Relationship diagram
+### Entity relationship diagrams
 
 ![entity relationship diagram legend](./assets/entities_legend.svg)
 
-![entity relationship diagram](./assets/entities.svg)
+![entity database relationship diagram](./assets/entities_db.svg)
+![entity api relationship diagram](./assets/entities_api.svg)
+
+## Versioning
+The versions of both the GraphQL API and the Indexer itself can be retrieved simply using the following query on the GraphQL playground.
+
+##### Example:
+
+```graphql
+query ReleaseVersionTest {
+  _metadata {
+    queryNodeVersion
+    indexerNodeVersion
+  }
+}
+```
+
+Each of these version numbers are stored as the value to the key `"version"` within their relevant module `package.json` file. These files can be found in the `docker/node-cosmos/` and `subql/packages/query/` directories for the Indexer and GraphQL versions, respectively.
+```yaml
+// The Indexer version number, taken from "docker/node-cosmos/package.json"
+{ 
+  "name": "@subql/node-cosmos",
+  "version": "1.0.0",
+  ...
+}
+```
+
+#### `"_metadata"` Entity
+The `_metadata` entity has further utility beyond the scope of the example query given prior. Using any of the relevant fields from the type definition below, internal states and config information can be retrieved with ease.
+```
+type _Metadata {
+        lastProcessedHeight: Int
+        lastProcessedTimestamp: Date
+        targetHeight: Int
+        chain: String
+        specName: String
+        genesisHash: String
+        indexerHealthy: Boolean
+        indexerNodeVersion: String
+        queryNodeVersion: String
+        rowCountEstimate: [TableEstimate]
+        dynamicDatasources: String
+      }
+```
+##### Example:
+If a developer was curious about the `chain-id` or whether the Indexer has passed any health checks, using `indexerHealthy`, these values can be returned within the playground or otherwise connected projects.
+```graphql
+query ReleaseVersionTest {
+  _metadata {
+    chain
+    indexerHealthy
+  }
+}
+```
