@@ -40,7 +40,7 @@ jobs:
           compose-file: "./ci-compose.yml"
 
       - name: Graphile-migrate reset DB
-        run: . .gm.env && graphile-migrate reset --erase
+        run: docker compose stop subquery-node && . .gm.env && graphile-migrate reset --erase
 
       - name: Run graphile-migrate migrations
         run: . .gm.env && graphile-migrate migrate
