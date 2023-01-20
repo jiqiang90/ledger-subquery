@@ -1,8 +1,7 @@
 import {CosmosEvent} from "@subql/types-cosmos";
-import {Cw20BalanceChange, Cw20Transfer, TuningData} from "../../types";
+import {TuningData} from "../../types";
 import {
   attemptHandling,
-  checkBalancesAccount,
   unprocessedEventHandler,
   messageId,
 } from "../utils";
