@@ -2,7 +2,7 @@ version: "3"
 
 services:
   postgres:
-    image: bryanchriswhite/ledger-subquery-postgres:stable
+    image: gcr.io/fetch-ai-images/subquery-postgres:863ce7d
     ports:
       - 5432:5432
     environment:
