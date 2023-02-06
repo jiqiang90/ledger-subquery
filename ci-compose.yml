@@ -2,11 +2,9 @@ version: "3"
 
 services:
   postgres:
-    image: postgres:14-alpine
+    image: gcr.io/fetch-ai-images/subquery-postgres:863ce7d
     ports:
       - 5432:5432
-    volumes:
-      - .data/postgres:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: "subquery"
       POSTGRES_PASSWORD: "subquery"
@@ -36,6 +34,9 @@ services:
       START_BLOCK: "1"
       NETWORK_ENDPOINT: "http://fetch-node:26657"
       CHAIN_ID: "fetchchain"
+      DATABASE_URL: "postgres://subquery:subquery@postgres/subquery"
+      SHADOW_DATABASE_URL: "postgres://subquery:subquery@postgres/subquery_shadow"
+      ROOT_DATABASE_URL: "postgres://subquery:subquery@postgres/postgres"
     volumes:
       - ./docker/node-cosmos/package.json:/usr/local/lib/node_modules/@subql/node-cosmos/package.json
     command:

@@ -18,6 +18,10 @@ RUN yarn install && yarn build
 
 FROM onfinality/subql-node-cosmos:v0.2.0
 
+# Add system dependencies
+RUN apk update
+RUN apk add postgresql14-client
+
 # NB: add SigNoz / OpenTelemetry dependencies
 WORKDIR /usr/local/lib/node_modules/@subql/node-cosmos
 RUN yarn add "@grpc/grpc-js" \
@@ -32,15 +36,20 @@ RUN chmod +x /usr/local/bin/yq
 
 WORKDIR /app
 
+# install global dependencies
+RUN npm install -g graphile-migrate
+
 # add the dependencies
 ADD ./package.json yarn.lock /app/
 RUN yarn install --frozen-lockfile --prod
 
 # NB: replace built node-cosmos run module
 COPY ./docker/node-cosmos /usr/local/lib/node_modules/@subql/node-cosmos
+COPY ./.gmrc /app/.gmrc
 COPY --from=builder /app/subql/packages/common /usr/local/lib/node_modules/@subql/node-cosmos/node_modules/@subql/common
 
 COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/migrations /app/migrations
 ADD ./proto /app/proto
 ADD ./project.yaml schema.graphql /app/
 ADD ./scripts/node-entrypoint.sh /entrypoint.sh
