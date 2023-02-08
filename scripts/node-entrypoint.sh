@@ -17,6 +17,13 @@ if [[ ! -z "${NETWORK_ENDPOINT}" ]]; then
     yq -i '.network.endpoint = strenv(NETWORK_ENDPOINT)' project.yaml
 fi
 
+echo $DB_HOST
+echo $DB_USER
+echo $DB_HOST
+echo $DB_PORT
+echo $DB_DATABASE
+echo $DATABASE_URL
+
 export PGPASSWORD=$DB_PASS
 has_migrations=$(psql -h $DB_HOST \
                       -U $DB_USER \
