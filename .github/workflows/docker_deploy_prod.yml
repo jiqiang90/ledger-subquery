@@ -2,7 +2,7 @@ name: Docker deploy prod
 
 on:
   push:
-    branches: [main]
+    branches: [chore/testing-envs]
 
 jobs:
   ledger-subquery:
