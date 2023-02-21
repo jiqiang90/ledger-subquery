@@ -29,3 +29,10 @@ class ListConstructorMixin:
 class Coin(ListConstructorMixin, OwnAttrsMixin):
     amount: str
     denom: str
+
+
+@dataclass
+class Contract(ListConstructorMixin, OwnAttrsMixin):
+    contract_address: str
+    contract_info: dict
+    contract_state: list

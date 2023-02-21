@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Dict
 
 from src.genesis.state.bank import BankState, OwnAttrsMixin
+from src.genesis.state.wasm import WasmState
 
 
 @dataclass
@@ -30,11 +31,14 @@ class AppStateData:
 
 class AppState(OwnAttrsMixin, AppStateData):
     def __init__(self, **kwargs):
-        bank_state_data = {}
+        bank_state_data = wasm_state_data = {}
         if kwargs.get("bank") is not None:
             bank_state_data = kwargs["bank"]
+        if kwargs.get("wasm") is not None:
+            wasm_state_data = kwargs["wasm"]
 
         concrete_state = {
             "bank": BankState(**bank_state_data),
+            "wasm": WasmState(**wasm_state_data)
         }
         super().__init__(**{**kwargs, **concrete_state})

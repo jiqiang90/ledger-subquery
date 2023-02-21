@@ -44,7 +44,9 @@ db_name = env_db_name or args.db_name
 # TODO: progress indicators (?)
 
 print("Downloading..")
-GenesisSingleton(args.json_url)
+print(args.json_url)
+url = "https://raw.githubusercontent.com/fetchai/genesis-fetchhub/main/fetchhub-4/data/genesis_migrated_5300200.json"
+GenesisSingleton(url)
 print("done!")
 
 connection_args = {

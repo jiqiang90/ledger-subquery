@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -93,5 +94,9 @@ class GenesisSingleton:
 
             data = download_json(json_url)
             cls._genesis = Genesis(**data)
+            print("ABOUT TO PRINT")
+            # time.sleep(5)
+            print(cls._genesis.data.app_state.wasm.contracts[0])
+            print(cls._genesis.data.app_state.bank.balances[5])
 
         return cls._genesis
