@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 from psycopg.errors import UniqueViolation
 
 from utils.loggers import get_logger
+from copy import deepcopy
 
 _logger = get_logger(__name__)
 
@@ -35,12 +36,14 @@ class AccountsManager():
         # Find duplicate account index
         duplicate_account_index = None
         for i in range(len(accounts_data)):
-            if accounts_data[i].id == duplicate_account_id:
+            if accounts_data[i]["address"] == duplicate_account_id:
                 duplicate_account_index = i
 
         return duplicate_account_id, duplicate_account_index
 
     def process_genesis(self, accounts_data: List[dict], chain_id: str):
+        # Prevent data from being modified
+        accounts_data = deepcopy(accounts_data)
 
         with self.db_conn.cursor() as db:
             duplicate_occured = True
@@ -73,6 +76,6 @@ class AccountsManager():
                     _logger.warning(
                         f"Duplicate account occurred during COPY: {duplicate_account_id}"
                     )
-                    self._db_conn.commit()
+                    self.db_conn.commit()
 
-        self._db_conn.commit()
+        self.db_conn.commit()
