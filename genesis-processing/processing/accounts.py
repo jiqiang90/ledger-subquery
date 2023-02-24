@@ -32,8 +32,7 @@ class AccountsManager():
         genesis_accounts_filtered = self._filter_genesis_accounts(accounts_data, db_accounts)
         for copy in self.table_manager.db_copy():
             for account in genesis_accounts_filtered:
-                values = [self._get_account_address(account), chain_id]
-                copy.write_row(values)
+                copy.write_row([self._get_account_address(account), chain_id])
 
     def _get_account_data(self, genesis_data: dict) -> List[dict]:
         return genesis_data["app_state"]["bank"]["balances"]
