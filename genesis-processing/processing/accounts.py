@@ -1,81 +1,57 @@
 from psycopg import Connection
 from db.table_manager import TableManager, DBTypes
-from db.field_enums import Accounts
-from typing import List, Optional, Tuple
-from psycopg.errors import UniqueViolation
-
+from typing import List
 from utils.loggers import get_logger
-from copy import deepcopy
 
 _logger = get_logger(__name__)
 
+ID = "id"
+CHAIN_ID = "chain_id"
+TABLE_ID = "accounts"
+
 
 class AccountsManager():
+
     def __init__(self, db_conn: Connection):
-        table = Accounts.get_table()
         columns = (
-            ("id", DBTypes.text),
-            ("chain_id", DBTypes.text),
+            (ID, DBTypes.text),
+            (CHAIN_ID, DBTypes.text),
         )
         indexes = (
-            "id",
-            "chain_id",
+            ID,
+            CHAIN_ID,
         )
 
-        self.db_conn = db_conn
-        self.table_manager = TableManager(db_conn, table, columns, indexes)
-
+        self.table_manager = TableManager(db_conn, TABLE_ID, columns, indexes)
         self.table_manager.ensure_table()
 
-    def _get_name_and_index(
-            self, e: UniqueViolation, accounts_data: List[dict]
-    ) -> Tuple[str, Optional[int]]:
-        # Extract account name from error string
-        duplicate_account_id = self.table_manager.extract_id_from_unique_violation_exception(e)
+    def process_genesis(self, genesis_data: dict, chain_id: str):
+        accounts_data = self._get_account_data(genesis_data)
+        db_accounts = self.table_manager.select_query([ID])
 
-        # Find duplicate account index
-        duplicate_account_index = None
-        for i in range(len(accounts_data)):
-            if accounts_data[i]["address"] == duplicate_account_id:
-                duplicate_account_index = i
+        genesis_accounts_filtered = self._filter_genesis_accounts(accounts_data, db_accounts)
+        for copy in self.table_manager.db_copy():
+            for account in genesis_accounts_filtered:
+                values = [self._get_account_address(account), chain_id]
+                copy.write_row(values)
 
-        return duplicate_account_id, duplicate_account_index
+    def _get_account_data(self, genesis_data: dict) -> List[dict]:
+        return genesis_data["app_state"]["bank"]["balances"]
 
-    def process_genesis(self, accounts_data: List[dict], chain_id: str):
-        # Prevent data from being modified
-        accounts_data = deepcopy(accounts_data)
+    def _get_account_address(self, account: dict) -> str:
+        return str(account["address"])
 
-        with self.db_conn.cursor() as db:
-            duplicate_occured = True
+    def _filter_genesis_accounts(self, accounts_data: List[dict], db_accounts: List[str]) -> List[dict]:
+        """
+        Filter out genesis_accounts IDs from accounts_data
 
-            while duplicate_occured:
-                try:
-                    duplicate_occured = False
-                    with db.copy(
-                            f'COPY {self.table_manager.table} ({",".join(self.table_manager.get_column_names())}) FROM STDIN'
-                    ) as copy:
-                        for account in accounts_data:
-                            values = [str(account["address"]), chain_id]
-                            copy.write_row(values)
-                except UniqueViolation as e:
-                    duplicate_occured = True
+        :param accounts_data: Account data to be filtered
+        :param genesis_accounts: IDs as a filter
+        :return: Copy of accounts_data with removed accounts from genesis_accounts filter
+        """
+        genesis_accounts = [self._get_account_address(x) for x in accounts_data]
 
-                    (
-                        duplicate_account_id,
-                        duplicate_account_index,
-                    ) = self._get_name_and_index(e, accounts_data)
-
-                    if duplicate_account_index is None:
-                        raise RuntimeError(
-                            f"Error during duplicate handling, account id {duplicate_account_id} not found"
-                        )
-
-                    # Remove duplicate account from queue
-                    accounts_data.pop(duplicate_account_index)
-
-                    _logger.warning(
-                        f"Duplicate account occurred during COPY: {duplicate_account_id}"
-                    )
-                    self.db_conn.commit()
-
-        self.db_conn.commit()
+        matches = [match for match in set(db_accounts) & set(genesis_accounts)]  # list already indexed accounts
+        genesis_accounts_filtered = filter(lambda account: self._get_account_address(account) not in matches,
+                                           accounts_data)
+        return list(genesis_accounts_filtered)

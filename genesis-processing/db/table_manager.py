@@ -1,15 +1,14 @@
-from typing import Any, Generator, Tuple
+from typing import Any, Generator, Tuple, List
 
 from psycopg import Connection
-from psycopg.errors import UniqueViolation
 from enum import Enum
+import itertools
 
 
 class DBTypes(Enum):
     text = "text"
     numeric = "numeric"
     interface = "public.app_enum_0f6c2478ba"
-
 
 
 class TableManager:
@@ -21,17 +20,18 @@ class TableManager:
                  schema: str = "app"):
         self.db_conn = db_conn
         self.table = table
-        self.columns= columns
-        self.indexes= indexes
+        self.columns = columns
+        self.indexes = indexes
         self.schema = schema
 
     def get_column_names(self) -> Generator[str, Any, None]:
         return (name for name, _ in self.columns)
 
-    def select_query(self) -> str:
-        return f"""
-            SELECT {",".join(self.get_column_names())} FROM {self.table}
-        """
+    def select_query(self, column_names: List[str]) -> str:
+        res = self.db_conn.execute(f"""
+            SELECT {",".join(column_names)} FROM {self.table}
+        """).fetchall()
+        return list(itertools.chain(*res))
 
     def ensure_table(self):
         with self.db_conn.cursor() as db:
@@ -61,12 +61,6 @@ class TableManager:
             self.db_conn.commit()
             # TODO error checking / handling (?)
 
-    @classmethod
-    def extract_id_from_unique_violation_exception(cls, e: UniqueViolation) -> str:
-        # Extract which ID was violated from UniqueViolation exception
-        return str(e).split("(")[2].split(")")[0]
-
-
     def table_exists(self, table: str) -> bool:
         with self.db_conn.cursor() as db:
             res_db_execute = db.execute(
@@ -82,3 +76,11 @@ class TableManager:
             assert res_db_execute is not None
 
             return res_db_execute[0]
+
+    def db_copy(self):
+        with self.db_conn.cursor() as db:
+            with db.copy(
+                    f'COPY {self.table} ({",".join(self.get_column_names())}) FROM STDIN'
+            ) as copy:
+                yield copy
+        self.db_conn.commit()
