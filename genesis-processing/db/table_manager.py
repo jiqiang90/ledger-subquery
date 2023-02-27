@@ -3,6 +3,7 @@ from typing import Any, Generator, Tuple, List
 from psycopg import Connection
 from enum import Enum
 import itertools
+from contextlib import contextmanager
 
 
 class DBTypes(Enum):
@@ -77,6 +78,7 @@ class TableManager:
 
             return res_db_execute[0]
 
+    @contextmanager
     def db_copy(self):
         with self.db_conn.cursor() as db:
             with db.copy(

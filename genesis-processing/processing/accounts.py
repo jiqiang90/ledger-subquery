@@ -30,7 +30,7 @@ class AccountsManager():
         db_accounts = self.table_manager.select_query([ID])
 
         genesis_accounts_filtered = self._filter_genesis_accounts(accounts_data, db_accounts)
-        for copy in self.table_manager.db_copy():
+        with self.table_manager.db_copy() as copy:
             for account in genesis_accounts_filtered:
                 copy.write_row([self._get_account_address(account), chain_id])
 
