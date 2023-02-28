@@ -1,4 +1,5 @@
 from psycopg import Connection
+
 from .accounts import AccountsManager
 
 

@@ -1,19 +1,107 @@
 #!/usr/bin/env python
 
-from download import download_json
-from db.args import add_arguments
-
 import argparse
-
+import json
 from os import environ
+from typing import Dict
+from urllib.request import urlopen
 
 import psycopg
 from processing.genesis import process_genesis
 
-parser = argparse.ArgumentParser(description="""
+dorado_genesis_url = (
+    "https://storage.googleapis.com/fetch-ai-testnet-genesis/genesis-dorado-827201.json"
+)
+
+default_db_host = "localhost"
+default_db_port = 5432
+default_db_user = "subquery"
+default_db_pass = "subquery"
+default_db_schema = "app"
+default_db_name = "subquery"
+
+
+def download_json(json_url: str) -> Dict:
+    # TODO: can we do this as a stream?
+
+    with urlopen(json_url) as response:
+        # TODO: handle error
+        data = json.loads(response.read())
+
+    return data
+
+
+def add_arguments(parser: argparse.ArgumentParser):
+    parser.add_argument(
+        "json_url",
+        metavar="JSON_URL",
+        type=str,
+        nargs="?",
+        default=dorado_genesis_url,
+        help="URL to genesis JSON data to process",
+    )
+
+    parser.add_argument(
+        "--db-host",
+        type=str,
+        default=default_db_host,
+        dest="db_host",
+        nargs="?",
+        help="Database hostname, either flag OR DB_HOST environment variable must be set",
+    )
+
+    parser.add_argument(
+        "--db-port",
+        type=str,
+        default=default_db_port,
+        dest="db_port",
+        nargs="?",
+        help="Database port number (default: 5432)",
+    )
+
+    parser.add_argument(
+        "--db-user",
+        type=str,
+        default=default_db_user,
+        dest="db_user",
+        nargs="?",
+        help="Database username (default: subquery)",
+    )
+
+    parser.add_argument(
+        "--db-pass",
+        type=str,
+        default=default_db_pass,
+        dest="db_pass",
+        nargs="?",
+        help="Database password (default: subquery)",
+    )
+
+    parser.add_argument(
+        "--db-schema",
+        type=str,
+        default=default_db_schema,
+        dest="db_schema",
+        nargs="?",
+        help="Database schema to use (default: 'app')",
+    )
+
+    parser.add_argument(
+        "--db-name",
+        type=str,
+        default=default_db_name,
+        dest="db_name",
+        nargs="?",
+        help="Database name to use (default: subquery)",
+    )
+
+
+parser = argparse.ArgumentParser(
+    description="""
     Process genesis from JSON_URL into DB records.
     Environment variables DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_SCHEMA, and DB_NAME will override flags.
-""")
+"""
+)
 
 env_db_host = environ.get("DB_HOST")
 env_db_port = environ.get("DB_PORT")
@@ -41,12 +129,10 @@ connection_args = {
     "dbname": db_name,
     "user": db_user,
     "password": db_pass,
-    "options": f"-c search_path={db_schema}"
+    "options": f"-c search_path={db_schema}",
 }
 
 db_connection = psycopg.connect(**connection_args)
-
-json_url = "https://raw.githubusercontent.com/fetchai/genesis-fetchhub/main/fetchhub-4/data/genesis_migrated_5300200.json"
-data = download_json(json_url)
+data = download_json(args.json_url)
 
 process_genesis(db_connection, data)
