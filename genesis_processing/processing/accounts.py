@@ -1,9 +1,8 @@
-from typing import List
-
-from db.table_manager import DBTypes, TableManager
 from psycopg import Connection
 
-from utils.loggers import get_logger
+from genesis_processing.db.table_manager import TableManager, DBTypes
+from typing import List
+from genesis_processing.utils.loggers import get_logger
 
 _logger = get_logger(__name__)
 
