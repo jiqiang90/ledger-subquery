@@ -35,31 +35,33 @@ class AccountsManager:
         )
         with self.table_manager.db_copy() as copy:
             for account in genesis_accounts_filtered:
-                copy.write_row([self._get_account_address(account), chain_id])
+                copy.write_row((self._get_account_address(account), chain_id))
 
-    def _get_account_data(self, genesis_data: dict) -> List[dict]:
+    @classmethod
+    def _get_account_data(cls, genesis_data: dict) -> List[dict]:
         return genesis_data["app_state"]["bank"]["balances"]
 
-    def _get_account_address(self, account: dict) -> str:
+    @classmethod
+    def _get_account_address(cls, account: dict) -> str:
         return str(account["address"])
 
+    @classmethod
     def _filter_genesis_accounts(
-        self, accounts_data: List[dict], db_accounts: List[str]
+        cls, accounts_data: List[dict], db_accounts: List[str]
     ) -> List[dict]:
         """
         Filter out genesis_accounts IDs from accounts_data
 
         :param accounts_data: Account data to be filtered
-        :param genesis_accounts: IDs as a filter
         :return: Copy of accounts_data with removed accounts from genesis_accounts filter
         """
-        genesis_accounts = [self._get_account_address(x) for x in accounts_data]
+        genesis_accounts = [cls._get_account_address(x) for x in accounts_data]
 
         matches = [
             match for match in set(db_accounts) & set(genesis_accounts)
         ]  # list already indexed accounts
         genesis_accounts_filtered = filter(
-            lambda account: self._get_account_address(account) not in matches,
+            lambda account: cls._get_account_address(account) not in matches,
             accounts_data,
         )
         return list(genesis_accounts_filtered)
