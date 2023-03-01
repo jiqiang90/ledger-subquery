@@ -1,7 +1,8 @@
+from typing import List
+
 from psycopg import Connection
 
-from genesis_processing.db.table_manager import TableManager, DBTypes
-from typing import List
+from genesis_processing.db.table_manager import DBTypes, TableManager
 from genesis_processing.utils.loggers import get_logger
 
 _logger = get_logger(__name__)
@@ -13,18 +14,15 @@ INSTANTIATE_MESSAGE_ID = "instantiate_message_id"
 TABLE_ID = "contracts"
 
 
-class ContractsManager():
-
+class ContractsManager:
     def __init__(self, db_conn: Connection):
         columns = (
             (ID, DBTypes.text),
             (INTERFACE, DBTypes.interface),
             (STORE_MESSAGE_ID, DBTypes.text),
-            (INSTANTIATE_MESSAGE_ID, DBTypes.text)
+            (INSTANTIATE_MESSAGE_ID, DBTypes.text),
         )
-        indexes = (
-            ID,
-        )
+        indexes = (ID,)
 
         self.table_manager = TableManager(db_conn, TABLE_ID, columns, indexes)
         self.table_manager.ensure_table()
@@ -34,10 +32,14 @@ class ContractsManager():
         db_contracts = self.table_manager.select_query([ID])
         print(db_contracts)
 
-        genesis_accounts_filtered = self._filter_genesis_contracts(contracts_data, db_contracts)
+        genesis_accounts_filtered = self._filter_genesis_contracts(
+            contracts_data, db_contracts
+        )
         with self.table_manager.db_copy() as copy:
             for contract in genesis_accounts_filtered:
-                copy.write_row([self._get_contract_address(contract), "Uncertain", None, None])
+                copy.write_row(
+                    (self._get_contract_address(contract), "Uncertain", None, None)
+                )
 
     def _get_contract_data(self, genesis_data: dict) -> List[dict]:
         return genesis_data["app_state"]["wasm"]["contracts"]
@@ -46,7 +48,9 @@ class ContractsManager():
         print("_get_contract_address:\n\n", contract["contract_address"])
         return str(contract["contract_address"])
 
-    def _filter_genesis_contracts(self, contracts_data: List[dict], db_contracts: List[str]) -> List[dict]:
+    def _filter_genesis_contracts(
+        self, contracts_data: List[dict], db_contracts: List[str]
+    ) -> List[dict]:
         """
         Filter out genesis_contracts IDs from contracts_data
 
@@ -56,7 +60,11 @@ class ContractsManager():
         """
         genesis_accounts = [self._get_contract_address(x) for x in contracts_data]
 
-        matches = [match for match in set(db_contracts) & set(genesis_accounts)]  # list already indexed accounts
-        genesis_contracts_filtered = filter(lambda account: self._get_contract_address(account) not in matches,
-                                            contracts_data)
+        matches = [
+            match for match in set(db_contracts) & set(genesis_accounts)
+        ]  # list already indexed accounts
+        genesis_contracts_filtered = filter(
+            lambda account: self._get_contract_address(account) not in matches,
+            contracts_data,
+        )
         return list(genesis_contracts_filtered)
