@@ -29,6 +29,22 @@ test_bank_state: Dict = {
     "supply": test_bank_state_supply,
 }
 
+test_wasm_contracts_state: List[Dict] = [
+    {
+        "contract_address": "fetch1qzgdkls8ey2phy3z055j42z3ednn8eflxjn5rqg0xm3yha4jwj8su83wv2",
+        "contract_info": {
+            "admin": "",
+            "code_id": "120",
+            "created": None,
+            "creator": "fetch16xat59x6kelyn08tqmkn086lklnxsstshgrzx2",
+            "extension": None,
+            "ibc_port_id": "",
+            "label": "PRE",
+        },
+        "contract_state": [],
+    }
+]
+
 test_app_state: Dict = {
     "airdrop": {},
     "auth": {},
@@ -49,7 +65,7 @@ test_app_state: Dict = {
     "transfer": {},
     "upgrade": {},
     "vesting": {},
-    "wasm": {},
+    "wasm": {"contracts": test_wasm_contracts_state},
 }
 
 test_genesis_data: Dict = {
