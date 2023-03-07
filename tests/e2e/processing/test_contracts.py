@@ -56,10 +56,12 @@ class TestAccountsManager(TestWithDBConn, TestWithGQLClient):
             gql(
                 """
             query {
-                accounts {
+                contracts {
                     nodes {
                         id,
-                        chainId,
+                        interface,
+                        store_message_id,
+                        instantiate_message_id,
                     }
                 }
             }
@@ -67,9 +69,14 @@ class TestAccountsManager(TestWithDBConn, TestWithGQLClient):
             )
         )
 
-        for node in results["accounts"]["nodes"]:
+        for node in results["contracts"]["nodes"]:
             actual_accounts.append(
-                {"id": node.get("id"), "chain_id": node.get("chainId")}
+                {
+                    "id": node.get("id"),
+                    "interface": node.get("interface"),
+                    "store_message_id": node.get("store_message_id"),
+                    "instantiate_message_id": node.get("instantiate_message_id"),
+                }
             )
 
         self.assertListEqual(self.expected_accounts, actual_accounts)
