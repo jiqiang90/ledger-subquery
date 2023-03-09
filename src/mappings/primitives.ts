@@ -30,6 +30,9 @@ export async function handleEvent(event: CosmosEvent): Promise<void> {
 async function _handleBlock(block: CosmosBlock): Promise<void> {
   logger.info(`[handleBlock] (block.header.height): indexing block ${block.block.header.height}`);
 
+  // trying to print the new CosmosBlock header attribute
+  logger.fatal(`\nHeader info: ${JSON.stringify(block.header, null, 2)}\n`);
+
   const {id, header: {chainId, height, time}} = block.block;
   const timestamp = new Date(time);
   const blockEntity = Block.create({
