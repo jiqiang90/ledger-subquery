@@ -2,7 +2,7 @@ name: Docker deploy prod
 
 on:
   push:
-    branches: [main]
+    branches: [remove-postgres-docker-push]
 
 jobs:
   ledger-subquery:
