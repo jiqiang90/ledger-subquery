@@ -56,14 +56,14 @@ jobs:
             gcr.io/${{ env.IMAGE_PROJECT_ID }}/${{ env.NODE_IMAGE_NAME }}:${{ steps.vars.outputs.node_tag_name }}
       
       # Docker build ; docker push db image
-      - name: Build and push subquery postgres
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: ./docker/plv8.dockerfile
-          push: true
-          tags: |
-            gcr.io/${{ env.IMAGE_PROJECT_ID }}/${{ env.DB_IMAGE_NAME }}:${{ steps.vars.outputs.node_tag_name }}
+#       - name: Build and push subquery postgres
+#         uses: docker/build-push-action@v3
+#         with:
+#           context: .
+#           file: ./docker/plv8.dockerfile
+#           push: true
+#           tags: |
+#             gcr.io/${{ env.IMAGE_PROJECT_ID }}/${{ env.DB_IMAGE_NAME }}:${{ steps.vars.outputs.node_tag_name }}
 
       - name: Build and push graphql api
         uses: docker/build-push-action@v3
