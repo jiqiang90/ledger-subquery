@@ -13,6 +13,10 @@ dorado_genesis_url = (
     "https://storage.googleapis.com/fetch-ai-testnet-genesis/genesis-dorado-827201.json"
 )
 
+mainnet_genesis_url = (
+    "https://raw.githubusercontent.com/fetchai/genesis-fetchhub/main/fetchhub-4/data/genesis_migrated_5300200.json"
+)
+
 default_db_host = "localhost"
 default_db_port = 5432
 default_db_user = "subquery"
@@ -134,7 +138,9 @@ def main():
     }
 
     db_connection = psycopg.connect(**connection_args)
+    print("genesis_json downloading...")
     data = download_json(args.json_url)
+    print("genesis_json downloaded!")
 
     process_genesis(db_connection, data)
 

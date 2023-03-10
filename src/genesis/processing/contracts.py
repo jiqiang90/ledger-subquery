@@ -31,11 +31,12 @@ class ContractsManager:
         contracts_data = self._get_contract_data(genesis_data)
         db_contracts = self.table_manager.select_query([ID])
 
-        genesis_accounts_filtered = self._filter_genesis_contracts(
+        genesis_contracts_filtered = self._filter_genesis_contracts(
             contracts_data, db_contracts
         )
         with self.table_manager.db_copy() as copy:
-            for contract in genesis_accounts_filtered:
+            for contract in genesis_contracts_filtered:
+                print("adding contract:", self._get_contract_address(contract))
                 copy.write_row(
                     (self._get_contract_address(contract), "Uncertain", None, None)
                 )
