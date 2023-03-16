@@ -1,17 +1,15 @@
 # Entity Creation
 
-
-
-Expanding the current selection of indexed entities is a way of increasing the coverage of queryable network interactions. 
+By expanding the group of currently indexable entities we can increase the coverage of queryable network interactions. 
 
 ### Implementation
 
 
 #### Adding the entity schema
 
-in `schema.graphql`:
+Within`schema.graphql`:
 
-The GraphQl schema is amended to include the new entity, with any fields that are needed to support new use cases. These attributes are preferably **only those required, in order to minimise storage requirements**.
+The GraphQL schema is amended to include the new entity, with any fields that are required to support new use cases. These attributes are ideally **only those necessary, in order to minimise storage requirements**.
 ```
 0  type TestEntity @entity {
 1  		id: ID!
@@ -24,13 +22,13 @@ The GraphQl schema is amended to include the new entity, with any fields that ar
 8  }
 ```
 
-- L0 - Entity is defined as a GraphQL type with the addition of the `@entity` annotation.
+- **L0** - Entity is defined as a GraphQL entity with the `@entity` annotation.
 
-- L1 - Entity requires a unique identifier, GraphQL type: ID - in SQL, this column will have the `text` type.
+- **L1** - TestEntity requires a unique identifier, GraphQL type: ID - this column will be represented by the `text` type in SQL.
 
-- L2-4 - Needed entity attributes and their types are added, some with the `@index` tag to allow faster querying for anticipated use cases.
+- **L2-4** - Required entity attributes and their types are added, some with the `@index` tag to allow faster querying for anticipated use cases.
 
-- L5-8 - Entities: message, transaction and block are related.
+- **L5-8** - The entities message, transaction and block are related.
 
 Updating the generated code to include these changes can be done by running the following: 
 ```
@@ -40,10 +38,11 @@ yarn codegen
 
 #### Implementing the entity handler
 
-in `/src/mappings/your_entity_category/entity_name.ts`
-By convention, handler functions are organized according to the relevant Cosmos-SDK module to which they belong or with which they interact. Exceptions to this convention are appropriate as required.
+Within `/src/mappings/your_entity_category/entity_name.ts`:
 
-This handler function will be [configured](#creating-the-handler-trigger) to trigger whenever the indexer detects the desired interaction with the entity:
+By convention, handler functions are organized according to the relevant Cosmos-SDK module to which the entity represents or with which they interact. Exceptions to this convention are appropriate as required.
+
+This handler function will be [configured](#creating-the-handler-trigger) to trigger whenever the indexer detects the targeted interaction:
 
 ```
 0   export async function handleYourEntityName(event: CosmosEvent): Promise<void> {
@@ -76,15 +75,15 @@ This handler function will be [configured](#creating-the-handler-trigger) to tri
 27  }
 ```
 
-- L0 - Create an asynchronous handler function accepting a `CosmosEvent` as a parameter. The convention for event-based handlers is in place to ensure we only handle successful transactions - as opposed to message-based handling where an expensive internal success check must be made.
+- **L0** - Create an asynchronous handler function accepting a `CosmosEvent` as a parameter. The convention for event-based handlers is in place to ensure we only handle successful transactions - as opposed to message-based handling where an expensive internal completion check must be made.
   - Using the safe navigation operator `?` allows us to reference message values regardless of whether they exist, such as `event.msg?.msg?.decodedMsg?.entity_field_a`, where one or more of the parent structures could be corrupted and halt  the indexer without the operator.
-- L3-9 - Create a reference to the message related to the event and assign variables from the appropriate message fields.
+- **L3-9** - Create a reference to the message related to the event and assign variables from the appropriate message fields.
 
-- L11-14 - Check that these fields are valid, abandoning attempt at indexing the event in the case that any fields are malformed. Allowing the indexer to continue.
+- **L11-14** - Check that these fields are valid, abandoning attempt at indexing the event in the case that any fields are malformed. Allowing the indexer to continue.
 
-- L16-24 - Create a `TestEntity` instance and populate the required fields.
+- **L16-24** - Create a `TestEntity` instance and populate the required fields.
 
-- L26 - Save the entity to the database.
+- **L26** - Save the entity to the database.
 
 #### Configuring handler filters
 
@@ -101,18 +100,18 @@ This example will run the respective [handler](#implementing-the-entity-handler)
 5        	type: "message_type_url" 
 ```
 
-- L0 - Reference the TypeScript handler function to be called when triggered.
+- **L0** - Reference the TypeScript handler function to be called when triggered.
 
-- L1 - Define which type of handler this will trigger, in this case an Event handler. This will provide the event to the handler as the function signature.
+- **L1** - Define which type of handler this will trigger, in this case an Event handler. This will provide the event to the handler as the function signature.
 
-- L2-3 - Configure the event filtering for type `"event_type"`.
+- **L2-3** - Configure the event filtering for type `event_type`.
 
-- L4-5 - Configure the relevant message filtering as type `"message_type_url"`.
+- **L4-5** - Configure the relevant message filtering as type `message_type_url`.
 
 [Further reading](https://academy.subquery.network/build/manifest/cosmos.html#mapping-handlers-and-filters)
 
 ### Testing
-The current development is test-driven, as such, the tests within the [`Ledger-SubQuery`](/https://github.com/fetchai/ledger-subquery) repository are based upon a Python `Unittest` suite, running automatically as CI in the form of a GitHub Action. Each test is designed to be an encapsulated `end-to-end` assertion of each entities' functionality.
+The current development is test-driven, as such, the tests within the [`ledger-subquery`](/https://github.com/fetchai/ledger-subquery) repository are based upon a Python `Unittest` suite. This suite is executed within CI in the form of a GitHub Action. Each test is designed to be an encapsulated `end-to-end` assertion of each entities' functionality.
 
 The current program flow for each test can be abstracted to the different major parts and services of the system. `CosmPy` is used to interface with the `fetchd` node to construct and broadcast messages which will then be indexed. In order to execute PostgreSQL and GraphQL queries for test value assertion, the `Psycopg` and `GQL` libraries are used.
 
@@ -131,7 +130,7 @@ in `tests/e2e/entities/TestYourEntity.py`:
 
 Each test class relies upon a `SetUpClass` class method to ensure the prerequisite initialization and cleanup of the test environment. 
 
-The SetUp method of each Entity test class will look similar to the following:
+The `SetUpClass` method of each Entity test class will look similar to the following:
 
 ```
 0 class TestYourEntity(EntityTest):
@@ -145,10 +144,10 @@ The SetUp method of each Entity test class will look similar to the following:
 ```
 
 
-- Starting on *L3* - ensuring that the environment for the test suite is initialised by calling the parent class' `SetUpClass` method - e.g. setting up psycopg & gql clients.
-- on *L4* - we truncate the tables, cleaning the database to ensure there are no rows left to interfere with our testing.
-- *L5* - Triggering the creation of our entity on this line
-- *L6* - a 5-second delay in order to allow the indexer time to capture our new entity
+- **L3** - Affirm that the environment for the test suite is initialised by calling the parent class' `SetUpClass` method - e.g. setting up psycopg & gql clients.
+- **L4** - Truncate the tables, cleaning the database to ensure there are no rows left to interfere with our testing.
+- **L5** - Triggering the creation of the entity
+- **L6** - 5-second delay providing the indexer time to capture the new entity
 
 #### SQL Database querying
 
@@ -160,13 +159,13 @@ The SetUp method of each Entity test class will look similar to the following:
 4 	self.assertEqual(entity[0], "correct value", "Assertion failure message") 
 ```
 
-- L1 - Set out our SQL query to fetch the columns corresponding to the fields we defined in our schema.graphql.
+- **L1** - Set out a SQL query to fetch the columns corresponding to the fields defined in `schema.graphql`.
 
-- L2 - Fetching the results of the query using the psycopg `db_cursor` database cursor object method [`execute`](https://www.psycopg.org/docs/usage.html) to return the first row.
+- **L2** - Fetch the results of the query using the Psycopg `db_cursor` database cursor method [`execute`](https://www.psycopg.org/docs/usage.html) to return the first row.
 
-- L3 - firstly we assert that there is a row returned, as a non-null output of L2.
+- **L3** - Assert that there is a row returned, as a non-null output of **L2**.
 
-- L3 - Assert the value of the first column returned of the row, e.g. "entity_field_a". Use the ordinal number of the column in the query as the index. In practise, this is abstracted within `tests/helpers/field_enums.py` with the use of an `enum`.
+- **L3** - Assert the value for the first field of the row, e.g. `entity_field_a`. Use the ordinal number of the column in the query as the index. In practise, this is abstracted within `tests/helpers/field_enums.py` with the use of an `Enum` describing each entity.
 
 #### GQL querying
 
@@ -191,12 +190,15 @@ The SetUp method of each Entity test class will look similar to the following:
 17   self.assertEqual(entity[0]["entity_field_a"], "correct value", "Assertion error message")
 ```
 
-- L0-12 - define the GraphQL query for the entity and relevant fields.
-- L14 - fetch the result of this query using the `gql_client` object method `execute`.
-- L16 - assert that the result is not null.
-- L17 - assert the actual field value against the expected value.
+- **L0-12** - Define the GraphQL query for the entity and relevant fields.
+- **L14** - Fetch the result of this query using the `gql_client` object method `execute`.
+- **L16** - Assert that the result is not null.
+- **L17** - Assert the actual field value against the expected value.
 
+### DB Migrations
+It is important to note that updating or adding entities to an existing database will require a migration. 
 
+There is some infrastructure in place to allow complex migrations to be written in either SQL or Typescript using the `graphile-migrate` and `PLV8` plugins for Postgraphile and Postgres, respectively. There is further technical documentation regarding this process [here](https://github.com/fetchai/ledger-subquery#db-migrations).
 
 #### Useful links:
 [Ledger-SubQuery](/https://github.com/fetchai/ledger-subquery)
