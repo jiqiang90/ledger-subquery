@@ -31,7 +31,7 @@ async function _handleBlock(block: CosmosBlock): Promise<void> {
   logger.info(`[handleBlock] (block.header.height): indexing block ${block.block.header.height}`);
 
   // trying to print the new CosmosBlock header attribute
-  logger.fatal(`\nHeader info: ${JSON.stringify(block.header, null, 2)}\n`);
+  logger.fatal(`\nHeader info: height: ${block.header.height}, chainId: ${block.header.chainId}, time: ${block.header.time.toString()}`);
 
   const {id, header: {chainId, height, time}} = block.block;
   const timestamp = new Date(time);

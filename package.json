@@ -47,7 +47,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@subql/types-cosmos": "^0.4.3",
+    "@subql/types-cosmos": "latest",
     "@types/node": "^17.0.21",
     "graphile-migrate": "^1.4.0",
     "pino": "^7.8.0",
